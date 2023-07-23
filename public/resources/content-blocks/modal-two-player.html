@@ -1,0 +1,23 @@
+<div id="twoPlayerModal" class="modal hidden no-portrait">
+    <div id="twoPlayerModalContent" class="modal-content">
+        <div class="header">
+            <span class="close-modal-button" onclick="closeModal('twoPlayerModal')">&times;</span>
+        </div>
+        <div id="sectionCreateGame">
+            <p>To start a new game with a friend, get a code and share it with them.</p>
+            <input type="text" id="inpCreateGameCode" class="hidden" />
+            <button id="btnGetGameCode" class="clicker">Get Code</button>
+            <div id="sectionCopyCode" class="hidden">
+                <p>Now, copy this code and send it to your opponent!</p>
+                <button id="btnCopy" class="clicker">Copy</button>
+            </div>
+        </div>
+        <hr />
+        <div id="sectionJoinGame">
+            <p>If someone sent a code to you, enter it below.</p>
+            <div><input type="text" id="inpJoinGameCode" maxlength="5" /></div>
+            <p><button id="btnJoinGame" class="hidden clicker">Join Game</button></p>
+        </div>
+
+    </div>
+</div>

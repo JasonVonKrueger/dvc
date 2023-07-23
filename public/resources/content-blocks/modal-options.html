@@ -1,0 +1,30 @@
+<div class="modal-content" style="text-align: left; padding: 20px;">
+    <div class="header">
+        <span class="close-modal-button clicker" onclick="closeModal('game-options')">&times;</span>
+    </div>
+    <h1>Options</h1>
+    <div style="display: grid; grid-template-columns: auto auto;">
+        <div>Background music</div>
+        <div>
+            <label class="switch">
+                <input type="checkbox" id="chk-background-music" onclick="toggleBGMusic()">
+                <span class="slider round"></span>
+            </label>        
+        </div>
+        <div>Sound effects</div>
+        <div>
+            <label class="switch">
+                <input type="checkbox" id="chk-sound-effects" onclick="toggleSNDEffects()" checked>
+                <span class="slider round"></span>
+            </label>        
+        </div>        
+        <div>Auto-zoom Flower of Life</div>
+        <div>
+            <label class="switch">
+                <input type="checkbox" id="chk-autozoom-fol" checked>
+                <span class="slider round"></span>
+            </label>        
+        </div>
+    </div>
+    
+</div>
