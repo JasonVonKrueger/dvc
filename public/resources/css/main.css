@@ -1,0 +1,568 @@
+@import url('https://fonts.googleapis.com/css2?family=Yanone+Kaffeesatz&display=swap');
+
+@font-face {
+    font-family: 'dvc1-copperplate-gothic';
+    src: url('../fonts/Copperplate-Gothic-Medium.ttf') format('truetype')
+}
+
+:root {
+    --font-main: 'dvc1-copperplate-gothic';
+    --font-modal: 'Yanone Kaffeesatz', sans-serif;
+    --font-scorecard-size: 3em;
+    --font-scorecard: 'Yanone Kaffeesatz', sans-serif;
+    --score-card-width: 0px;
+    --game-piece-scale: .62;
+    --player-cup-size: 80px;
+}
+
+*, *::after, *::before {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100vh;
+    width: 100vw;
+    margin: 0px;
+    padding: 0px;
+    overflow-y: hidden;
+    background-color: #000;
+    background-image: url('../images/wood-sig-4.jpg');
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    cursor: url('../images/arrow-cursor.svg'), auto;
+}
+
+#device-message {
+    display: none;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.no-pointer-events {
+    pointer-events: none;
+}
+
+.clearfix::after {
+    content: "";
+    clear: both;
+    display: table;
+}
+
+button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    box-shadow: 0 5px #999;
+    font-family: var(--font-main);
+    font-size: 1em;
+    color: #fff;
+    width: 60%;
+    xbackground-image: linear-gradient(to top, rgb(117, 112, 112), rgb(217, 182, 182));
+    background-image: linear-gradient(to bottom, rgb(65, 62, 62), rgb(126, 22, 22));
+}
+
+button:active {
+    box-shadow: 0 3px #000;
+    transform: translateY(2px);
+}
+
+button:hover {
+    cursor: url('../images/arrow-cursor-hilite.svg'), auto;
+}
+
+#top-container {
+    height: 100%;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#splash-screen {
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: rgb(0, 0, 0);
+    overflow-y: hidden;
+    transition: 0.5s;
+    background-color: #000;
+}
+
+#smoke-vid {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    min-width: 100%; 
+    min-height: 100%;
+}
+
+.title-logo {
+    position: relative;
+    margin-top: 15%;
+    height: auto;
+    width: 100%;
+    -webkit-box-reflect: below -30px linear-gradient(to bottom, rgba(0,0,0,0.0), rgba(0,0,0,0.4));
+}
+
+#action-icon-container {
+    margin-top: 15%;
+    position: relative;
+    height: auto;
+    text-align: center;
+}
+
+#action-icon-container > div {
+    margin: 40px;
+}
+
+#music-onoff {
+    float: right;
+    width: 17px;
+}
+
+/*******************************************************************/
+/* Flower of Life stuff */
+#fol-container {
+    padding-top: 130px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#fol-pedestal {
+    position: absolute;
+    background-image: linear-gradient(to bottom right, rgb(113, 13, 13), yellow);
+    width: var(--fol-pedestal-size);
+    height: var(--fol-pedestal-size);
+    border-radius: 50%;
+}
+
+#fol-pedestal-base {
+    position: absolute;
+    background-color: #000;
+    width: var(--fol-pedestal-base-size);
+    height: var(--fol-pedestal-base-size);
+    border-radius: 50%;
+}
+
+svg {
+    width: 98%;
+    animation-name: rotate;
+    animation-duration: 1800s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
+
+.slot-taken:hover {
+    cursor: url('../images/arrow-cursor.svg'), auto;
+}
+
+@keyframes rotate {
+    from { transform: rotate(-360deg); }
+    to { transform: rotate(360deg); }
+}
+
+.fol-zoom-in {
+    transform: scale(1.8);
+    transition-duration: 0.9s;
+}
+
+.fol-zoom-out {
+    transform: scale(1);
+    transition-duration: 0.9s;
+}
+
+.flash-slot {
+    animation-name: flash-slot;
+    animation-duration: 2s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+    stroke: none;
+}
+
+@keyframes flash-slot {
+    0% { stroke:rgb(0, 0, 0); }
+    50% { stroke: none; }
+}
+
+/*******************************************************************/
+/* header container */
+#header-container {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 60px;
+    border-bottom: 5px solid #000;
+    xbackground: linear-gradient(146deg, rgba(130,42,46,1) 28%, rgba(194,48,16,1) 100%);
+    background-image: url('../images/wood-plank1.jpeg');
+}
+
+#header-menu {
+    position: relative;
+    padding-top: 2px;
+    display: grid;
+    grid-template-columns: auto auto auto;
+}
+
+#header-menu > div {
+    color: #fff;
+    font-family: var(--font-modal);
+    font-size: 1.4em;
+    text-align: center;
+}
+
+#menu-button {
+    grid-row: span 2;
+}
+
+#menu-icon {
+    width: 55px;
+    animation-name: glow;
+    animation-duration: 2s;
+    animation-iteration-count: infinite;
+    animation-fill-mode: linear;
+}
+
+#menu-icon:hover {
+    cursor: url('../images/arrow-cursor-hilite.svg'), auto;
+}
+
+@keyframes glow {
+    0% { filter: brightness(100%); transform: scale(1); }
+    50% { filter: brightness(90%); transform: scale(.98); }
+    100% { filter: brightness(100%); transform: scale(1); }
+}
+
+/*******************************************************************/
+/* player cups */
+#player-cup-container {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: auto;
+    padding: 10px 2.5px;
+    xbackground-image: linear-gradient(to bottom, rgb(65, 62, 62), rgb(126, 22, 22));
+    background-image: url('../images/black-marble.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    border-top: 2px solid rgb(85, 75, 75);
+}
+
+.player-cups {
+    position: relative;
+    box-shadow: inset 0 0 0 5px #7b2828;
+    height: var(--player-cup-size);
+    width: var(--player-cup-size);
+    border-radius: 50%;
+    margin: auto;
+    background-image: url('../images/leo1.jpg');
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    box-shadow: inset 0 0 0 5px #7b2828;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#player1-cups {
+    float: left;
+}
+
+#player2-cups {
+    float: right;
+}
+
+/*******************************************************************/
+/* Game pieces */
+.game-piece {
+    position: absolute;
+    transform: scale(var(--game-piece-scale));    
+}
+
+[id^='whiteTriangle'],
+[id^='whiteOval'] {
+    cursor: url('../images/arrow-cursor-hilite.svg'), auto;
+}
+
+[id^='oval'] {
+    cursor: url('../images/arrow-cursor-hilite.svg'), auto;
+}
+
+[id^='triangle'] {
+    cursor: url('../images/arrow-cursor-hilite.svg'), auto;
+}
+
+.piece-selected {
+    z-index: 5;
+    filter: drop-shadow(8px 8px 10px rgb(0, 0, 0));
+    animation-name: grow;
+    animation-duration: .5s;
+    animation-iteration-count: 1;
+    animation-fill-mode: forwards; 
+
+    animation-name: float;
+    animation-duration: 3s;
+    animation-iteration-count: infinite;
+    animation-fill-mode: ease-out;  
+}
+
+/* .shaker {
+    animation-name: shake;
+    animation-duration: .2s;
+    animation-iteration-count: 6;
+}
+
+@keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(3px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(3px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+} */
+
+@keyframes grow {
+    to { transform: scale(1.3); }
+}
+
+@keyframes float {
+    0% {transform: translate(0, 0px);}
+    50% {transform: translate(0, -10px);}     
+    100% {transform: translate(0, 0px);}
+}
+
+/*******************************************************************/
+/* modal */
+.modal {
+    position: fixed;
+    z-index: 1;
+    padding-top: 20%;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, .45);
+}
+
+.modal-content {
+    text-align: center;
+    font-size: 1.2em;
+    font-family: var(--font-modal);
+    background-color: #fefefe;
+    margin: auto;
+    height: 80%;
+    width: 90%;
+    background-image: url('../images/modal-back.png');
+    background-size: 100% 100%;   
+    overflow: auto; 
+}
+
+.modal-content > .header {
+    width: 100%;
+    height: 40px;
+}
+
+.close-modal-button {
+    float: right; 
+    font-size: 2em;
+    padding: 5px;
+}
+
+.close-modal-button:hover {
+    cursor: url('../images/arrow-cursor-hilite.svg'), auto;
+    background-color: cornsilk;
+}
+
+#point-values {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    border-top: .5px solid #666;
+}
+  
+#point-values > div {
+    margin-top: 4px;
+    text-align: center; 
+    border-bottom: .2px dashed #888; 
+}
+
+#point-values > div > img {
+    width: 35px;
+}
+
+.modal-zoom-in {
+    animation-name: zoom-in;
+    animation-duration: .5s;
+    animation-iteration-count: 1;
+    animation-fill-mode: forwards;    
+}
+
+@keyframes zoom-in {
+    from { transform: scale(0); }
+    to { transform: scale(1); }
+}
+
+/*******************************************************************/
+/* toast popup */
+.toast-container {
+    position: fixed;
+    left: calc(50% - 150px);
+    width: 300px;
+    font-size: 1.7em;
+    font-family: var(--font-modal);
+  }
+
+  .toast-container-p1 {
+    bottom: 100px;
+  }
+
+  .toast-container-p2 {
+    top: 100px;
+  }  
+
+  .toast {
+    opacity: 0;
+    min-height: 30px;
+    padding: 10px;
+    border: 2px solid dodgerblue;
+    margin-top: -42px;
+    background-color: #fff;
+    box-shadow: 0 3px 4px #0004;
+    text-align: center;
+    line-height: 30px;
+    transform: scale(0.95) translateY(50px);
+    transition:
+      margin-top 0.7s,
+      transform 0.7s,
+      opacity 0.7s;
+  }
+
+  .toast.open {
+    margin-top: 10px;
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  
+  /* Custom Toast Style */
+  .toast.critical {
+    background-color: pink;
+    border-color: red;
+  }
+
+/*******************************************************************/
+/* show the device message to rotate phone */
+@media only screen and (orientation: landscape) and (max-width: 860px) {
+    body {
+        background-color: #000;
+        background-image: none;
+    }
+
+    #device-message {
+        display: grid;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        width: 100vw;
+    }
+
+    #top-container {
+        display: none;
+    }  
+
+    #splash-screen {
+        display: none;
+    }  
+
+    #header-container {
+        display: none;
+    }
+
+    .modal {
+        display: none;
+    }   
+    
+    .modal-rotate-phone {
+        animation-name: rotate-phone;
+        animation-duration: 2.5s;
+        animation-iteration-count: infinite;
+        animation-fill-mode: backwards;  
+        animation-delay: 1s;
+        animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1)
+    }
+    
+    @keyframes rotate-phone {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(90deg); }
+    }    
+}
+
+/*******************************************************************/
+/* option sliders */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+  }
+  
+  .switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+  }
+
+  .slider:hover {
+    cursor: url('../images/arrow-cursor-hilite.svg'), auto;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+  }
+  
+  input:checked + .slider {
+    background-color: #000000;
+  }
+  
+  input:focus + .slider {
+    box-shadow: 0 0 1px #f38021;
+  }
+  
+  input:checked + .slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+  }
+  
+  /* Rounded sliders */
+  .slider.round {
+    border-radius: 34px;
+  }
+  
+  .slider.round:before {
+    border-radius: 50%;
+  }
