@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base href="./">
+    <title>Da Vinci's Challenge</title>
+    <meta name="description" content="Da Vinci's Challenge">
+    <meta name="author" content="Mr Monster">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <!-- <link rel="canonical" href="https://devserver.davincischallenge.app/index.html" /> -->
+    <link rel="apple-touch-icon" href="resources/images/ios/touch-icon-iphone.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="resources/images/ios/touch-icon-ipad.png">
+    <link rel="apple-touch-startup-image" href="resources/images/ios/launch.png">
+    <link rel="icon" href="resources/images/favicon.ico">
+    <link href="resources/css/main.css" rel="stylesheet">
+
+    <script>
+        // this is what allows us to use the content blocks
+        window.onload = function () {
+            function a(a, b) {
+                var c = /^(?:file):/,
+                    d = new XMLHttpRequest(),
+                    e = 0;
+                d.onreadystatechange = function () {
+                    4 == d.readyState && (e = d.status), c.test(location.href) && d.responseText && (e = 200),
+                        4 == d
+                        .readyState && 200 == e && (a.outerHTML = d.responseText)
+                };
+                try {
+                    d.open("GET", b, !0), d.send()
+                } catch (f) {}
+            }
+
+            var b,
+                c = document.getElementsByTagName("*");
+            for (b in c) c[b].hasAttribute && c[b].hasAttribute("data-include") && a(c[b], c[b].getAttribute(
+                "data-include"))
+        }
+    </script>
+</head>
+
+<body>
+
+    <div id="top-container">
+
+        <!-- header container -->
+        <div id="header-container">
+            <!-- header menu -->
+            <div id="header-menu">
+                <div style="font-size: 1.6em;">Player 1 Score</div>
+                <div id="menu-button">
+                    <img id="menu-icon" src="resources/images/sol-icon-dim.png" />
+                </div>
+                <div style="font-size: 1.6em;">Player 2 Score</div>
+            
+                <div id="player1-score">0</div>
+                <div id="player2-score">0</div>
+            </div>
+        </div>
+
+        <!-- Flower of Life container -->
+        <div id="fol-container" class="hidden no-pointer-events">
+            <div id="fol-pedestal-base"></div>
+            <div id="fol-pedestal"></div>
+            <div data-include="resources/images/gameboard-emboss-no-background.svg"></div> 
+        </div>
+
+        <!-- player cups -->
+        <div id="player-cup-container" class="hidden">
+            <div data-include="resources/content-blocks/player-cups.html"></div>
+        </div>
+
+    </div>
+
+    <!-- ********** modal windows ********** -->
+
+    <!-- splash screen -->
+    <div id="splash-screen">
+        <div data-include="resources/content-blocks/splash-screen.html"></div>
+    </div>
+
+    <!-- menu overlay -->
+    <!-- <div id="overlay">
+        <div data-include="resources/content-blocks/overlay.html"></div>
+    </div> -->
+
+    <!-- how to play -->
+    <div id="game-rules" class="modal hidden">
+        <div data-include="resources/content-blocks/modal-rules.html"></div>
+    </div>
+
+    <!-- options -->
+    <div id="game-options" class="modal hidden">
+        <div data-include="resources/content-blocks/modal-options.html"></div>
+    </div>
+
+    <!-- waiting for player two -->
+    <div id="waitingForPlayer" class="modal hidden">
+        <div class="modal-content">
+            <div id="txtWaiting"></div>
+        </div>
+    </div>
+
+     <!-- MOBILE: rotate your device -->
+    <div id="device-message">
+        <img src="resources/images/phone512.png" class="modal-rotate-phone" />
+    </div>
+
+    <script src="resources/classes/Game.js"></script>
+    <script src="resources/classes/GamePiece.js"></script>
+    <script src="resources/classes/Player.js"></script>
+    <script src="resources/js/howler.js"></script>
+    <script src="resources/js/socket.js"></script>
+    <script src="resources/js/main.js"></script>
+
+</body>
+
+</html>

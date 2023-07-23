@@ -1,0 +1,14 @@
+{
+    "short_name": "DVC",
+    "name": "Da Vinci's Challenge",
+    "icons": [{
+      "src": "resources/images/ios/touch-icon-iphone.png",
+      "type": "image/png",
+      "sizes": "200x200"
+    }],
+    "id": "/index.html",
+    "start_url": "/index.html",
+    "display": "fullscreen",
+    "scope": "/",
+    "description": "A game."
+  }
