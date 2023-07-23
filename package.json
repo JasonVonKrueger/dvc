@@ -1,0 +1,18 @@
+{
+  "name": "dvc",
+  "version": "1.0.0",
+  "description": "Da Vinci's Challenge App",
+  "main": "server.js",
+  "scripts": {
+    "start": "",
+    "build": "",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "MrMonster",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.1",
+    "socket.io": "^4.5.2",
+    "ws": "^8.8.1"
+  }
+}
