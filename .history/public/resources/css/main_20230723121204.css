@@ -27,7 +27,7 @@ body {
     padding: 0px;
     overflow-y: hidden;
     background-color: #000;
-    background-image: url('../images/m-tile1.jpeg');
+    background-image: url('../images/DVC-App-marble.svg');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     cursor: url('../images/arrow-cursor.svg'), auto;
@@ -246,8 +246,8 @@ svg {
     width: 100%;
     height: auto;
     padding: 10px 2.5px;
-    xbackground-image: linear-gradient(to bottom, rgb(65, 62, 62), rgb(126, 22, 22));
-    background-image: url('../images/DVC-App-wood.svg');
+    background-image: linear-gradient(to bottom, rgb(65, 62, 62), rgb(126, 22, 22));
+    xbackground-image: url('../images/black-marble.jpg');
     background-repeat: no-repeat;
     background-size: cover;
     border-top: 2px solid rgb(85, 75, 75);
@@ -362,7 +362,7 @@ svg {
     margin: auto;
     height: 80%;
     width: 90%;
-    background-image: url('../images/DVC-App-parchment.svg');
+    background-image: url('../images/modal-back.png');
     background-size: 100% 100%;   
     overflow: auto; 
 }
