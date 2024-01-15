@@ -4,6 +4,15 @@ const socket = new WebSocket('ws://localhost:9115/sockets')
 
 socket.onopen = function(e) {
     console.log('DVC socket server online')
+
+    // send a ping to keep the socket alive
+    let pinger = setInterval(function() {
+        if (socket.readyState != 1) {
+            clearInterval(t);
+            return;
+        }
+        socket.send(JSON.stringify({'event': 'KEEP-ALIVE'}));
+    }, 15000);
 }
 
 // listen for messages
@@ -52,6 +61,10 @@ socket.onmessage = function(e) {
 
                         document.getElementById(message.gamePiece).remove()
                     }, 3000)
+
+                    break
+                case 'SCORE':
+                    score(message.currentPlayer, message.playerOneScore, message.playerTwoScore, message.symbol)  
 
                     break
             }

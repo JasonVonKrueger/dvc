@@ -198,12 +198,16 @@ svg {
     height: 60px;
     border-bottom: 5px solid #000;
     xbackground: linear-gradient(146deg, rgba(130,42,46,1) 28%, rgba(194,48,16,1) 100%);
-    background-image: url('../images/wood-plank1.jpeg');
+    xbackground-image: url('../images/wood-plank1.jpeg');
+    xbackground-color: #4b0a0a;
+    background-image: url('../images/DVC-App-wood.svg');
+    background-repeat: no-repeat;
+    background-size: cover;
 }
 
 #header-menu {
     position: relative;
-    padding-top: 2px;
+    padding-top: 4px;
     display: grid;
     grid-template-columns: auto auto auto;
 }
@@ -246,6 +250,7 @@ svg {
     width: 100%;
     height: auto;
     padding: 10px 2.5px;
+    xbackground-color: #5c1818;
     xbackground-image: linear-gradient(to bottom, rgb(65, 62, 62), rgb(126, 22, 22));
     background-image: url('../images/DVC-App-wood.svg');
     background-repeat: no-repeat;
@@ -363,7 +368,7 @@ svg {
     height: 80%;
     width: 90%;
     background-image: url('../images/DVC-App-parchment.svg');
-    background-size: 100% 100%;   
+    background-size: cover;  
     overflow: auto; 
 }
 
@@ -409,6 +414,31 @@ svg {
 @keyframes zoom-in {
     from { transform: scale(0); }
     to { transform: scale(1); }
+}
+
+/*******************************************************************/
+/* "modal input" */
+#twoPlayerModalContent input {
+    font-size: 1.5rem;
+}
+
+/*******************************************************************/
+/* "Waiting" */
+#txtWaiting>span {
+    font-size: 1.8em;
+    font-weight: 400;
+    font-stretch: expanded;
+    position: relative;
+    display: inline-block;
+    animation: flip 6s infinite;
+    animation-delay: calc(.2s * var(--i))
+}
+
+@keyframes flip {
+    0%,
+    90% {
+        transform: rotateY(360deg)
+    }
 }
 
 /*******************************************************************/
@@ -507,6 +537,14 @@ svg {
 
 /*******************************************************************/
 /* option sliders */
+.options {
+    font-size: 1.8rem;
+}
+
+.options div {
+    padding-bottom: 2rem;
+}
+
 .switch {
     position: relative;
     display: inline-block;

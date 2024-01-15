@@ -51,10 +51,46 @@ function initEventListeners() {
 
     /* --------------------------------------------------------- */
     $('#iconDoublePlayer').addEventListener('click', function(e) {
+        createGame('(friend)')
         // socket.send(JSON.stringify({
         //     'event': 'CREATE_GAME',
         //     'gameType': 'FRIEND'
         //   }))
+    })
+
+    /* --------------------------------------------------------- */
+    $('#btnGetGameCode').addEventListener('click', function(e) {
+        e.preventDefault()
+        $('#btnGetGameCode').classList.add('hidden')
+        $('#inpCreateGameCode').classList.remove('hidden')
+        $('#sectionCopyCode').classList.remove('hidden')
+
+        inpCreateGameCode.focus()
+        inpCreateGameCode.select()  
+    })
+
+    /* --------------------------------------------------------- */
+    $('#btnCopy').addEventListener('click', function(e) {
+        document.execCommand("copy")  
+
+        $('#waitingForPlayer').classList.remove('hidden')
+
+        // do the letter spinning thing
+        const txt = " Waiting for player 2 to join..."
+        for (let c in txt) {
+            let char = txt[c]
+            const el = document.createElement("span");
+
+            if (char === ' ') {
+                el.setAttribute('style', 'width: 6px')
+            } else {
+                let m = '--i:' + c;
+                el.setAttribute('style', m);
+            }
+
+            el.innerText = char;
+            document.getElementById('txtWaiting').appendChild(el);
+        }
     })
     
     /* --------------------------------------------------------- */
@@ -128,14 +164,17 @@ async function createGame(type) {
     GAME.type = type
     GAME.myPlayerNumber = 1
 
+    // set the Game code input for two player modal
+    inpCreateGameCode.value = GAME.id
+
     if (type === '(solo)') {
         joinGame(1) // player 1 join
         joinGame(2) // player 2 join (bot)
     }
 
-    
-
     if (type === '(friend)') {
+        $('#twoPlayerModal').classList.remove('hidden')
+
         let title = "Da Vinci's Challenge"
         let url = 'https://dev.davincischallenge.app/join/' + GAME.id
         let text = "Let's play!"
@@ -147,8 +186,8 @@ async function createGame(type) {
             alert('Message sent!')
     
             //$('#overlay').style.height = '0%'
-            $('#fol-container').classList.remove('hidden')
-            $('#player-cup-container').classList.remove('hidden')
+            //$('#fol-container').classList.remove('hidden')
+            //$('#player-cup-container').classList.remove('hidden')
            
             //initBoard()
             //loadGamePieces()
@@ -288,13 +327,13 @@ function score(currentPlayer, playerOneScore, playerTwoScore, symbol) {
         points_element = 'ss_player1_' + symbol
 
         //document.getElementById(points_element).innerHTML = parseInt(document.getElementById(points_element).innerHTML) + 1
-        $('#player1-score"').innerHTML = playerOneScore
+        $('#player1-score').innerHTML = playerOneScore
     } 
     else if (currentPlayer == 2) {
         points_element = 'ss_player2_' + symbol
 
         //document.getElementById(points_element).innerHTML = parseInt(document.getElementById(points_element).innerHTML) + 1
-        $('#player2-score"').innerHTML = playerTwoScore
+        $('#player2-score').innerHTML = playerTwoScore
     }
 
     //sndSymbolFormed.play(false)
