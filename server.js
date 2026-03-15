@@ -23,7 +23,7 @@ wss.on('connection', function(socket) {
     })
 })
 
-const server = app.listen(config.devserver.port, function() {
+const server = app.listen(config.devserver.port || 9115, function() {
     console.log(`DVC app listening on port ${config.devserver.port}`)
 })
 
