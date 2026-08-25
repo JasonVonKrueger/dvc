@@ -80,13 +80,7 @@ app.post('/do', function(req, res) {
 })
 
 /* ************************************************************************************
-______                _   _                 ___                  _   _             
-|  ___|              | | (_)               |_  |                | | (_)            
-| |_ _   _ _ __   ___| |_ _  ___  _ __       | |_   _ _ __   ___| |_ _  ___  _ __  
-|  _| | | | '_ \ / __| __| |/ _ \| '_ \      | | | | | '_ \ / __| __| |/ _ \| '_ \ 
-| | | |_| | | | | (__| |_| | (_) | | | | /\__/ / |_| | | | | (__| |_| | (_) | | | |
-\_|  \__,_|_| |_|\___|\__|_|\___/|_| |_| \____/ \__,_|_| |_|\___|\__|_|\___/|_| |_|                                                                                  
-                                                                                   
+   game functions
 ************************************************************************************ */
 
 function createGame(gameType) {
@@ -165,34 +159,43 @@ function startMove(gameID, currentPlayer) {
 
  // ****************************************************************
  // complete the move
- function completeMove(gameID, slotID) { 
-    let symbol_formed = null
+ function completeMove(gameID, slotID, currentPlayer) {
     let currentGame = getGameIndex(gameID)
-    
-    // remove the slot from available slots 
+
+    if (!currentGame) {
+        return { message: 'Game not found' }
+    }
+
+    // remove the slot from available slots
     currentGame.availableSlots = currentGame.removeSlot(slotID)
+
+    let playerSlots = null
 
     if (currentGame.currentPlayer == 1) {
         currentGame.playerOne.slots.push(slotID)
-        symbol_formed = currentGame.checkForScoringPattern(currentGame.playerOne.slots)
+        playerSlots = currentGame.playerOne.slots
     }
 
     if (currentGame.currentPlayer == 2) {
-       currentGame.playerTwo.slots.push(slotID)
-       symbol_formed = currentGame.checkForScoringPattern(currentGame.playerTwo.slots)
+        currentGame.playerTwo.slots.push(slotID)
+        playerSlots = currentGame.playerTwo.slots
     }
 
-    if (symbol_formed.match_found) {
-        // !!!!!!  SCORE!!!!!!!
+    // checkForScoringPattern now takes the slot that was JUST placed as a
+    // second argument, and returns an ARRAY of matches (a single placement
+    // can complete more than one symbol at once).
+    let matches = currentGame.checkForScoringPattern(playerSlots, slotID)
+
+    matches.forEach(function (symbol_formed) {
         if (currentGame.currentPlayer == 1) {
             currentGame.playerOne.score += symbol_formed.points
         }
-    
+
         if (currentGame.currentPlayer == 2) {
             currentGame.playerTwo.score += symbol_formed.points
         }
 
-        console.log('************* SCORED: ' + symbol_formed.symbol)      
+        console.log('************* SCORED: ' + symbol_formed.symbol)
 
         broadcast(JSON.stringify({ type: 'BROADCAST',
                                     event: 'SCORE',
@@ -202,7 +205,7 @@ function startMove(gameID, currentPlayer) {
                                     points: symbol_formed.points,
                                     playerOneScore: currentGame.playerOne.score,
                                     playerTwoScore: currentGame.playerTwo.score  }));
-    }
+    })
 
     broadcast(JSON.stringify({ type: 'BROADCAST', 
                             event: 'MOVE_COMPLETE',                                     
@@ -257,22 +260,3 @@ function getGameIndex(gameID) {
     
     return false
 }
-
-// function generateGameID(length) {
-//     let id = ''
-//     let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-//     let charactersLength = characters.length
-
-//     for (let i = 0; i < length; i++) {
-//         id += characters.charAt(Math.floor(Math.random() * charactersLength))
-//     }
-
-//     // make sure it doesn't exist already
-//     if (getGameIndex(id)) {
-//         // call function again to regenerate a new id
-//     }
-
-//     return id
-// }
-
-
