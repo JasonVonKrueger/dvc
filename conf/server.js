@@ -6,5 +6,9 @@ module.exports = {
 	prodserver: {
 		fqdn: 'localhost',
 		port: 9120
+	},
+	database: {
+		directory: 'data',
+		filename: 'dvc.db'
 	}
 }

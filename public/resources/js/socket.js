@@ -24,7 +24,8 @@ socket.onmessage = function(e) {
             switch (message.event) {
                 case 'GAME_STARTED':
                     initBoard()
-                    showToast('You are player ' + GAME.myPlayerNumber)
+                    showToast('You are ' + (GAME.myPlayerName || 'player ' + GAME.myPlayerNumber))
+                    savePlayerName(GAME.myPlayerName)
                     break
                 case 'MOVE_STARTED':
                     GAME.moveStarted = true

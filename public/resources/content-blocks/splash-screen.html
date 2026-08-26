@@ -1,28 +1,43 @@
 <!-- splash screen -->
-<video autoplay muted loop id="smoke-vid">
+<video autoplay muted loop playsinline id="smoke-vid" aria-hidden="true">
     <source src="resources/images/smoke3.mp4" type="video/mp4">
 </video>
 
-<div>
-    <img src="resources/images/dvc-logo-001.png" class="title-logo" />
-</div>
-<div id="action-icon-container">
-    <div>
-        <button id="iconSinglePlayer" class="clicker">Single Player</button>
+<div class="splash-backdrop" aria-hidden="true"></div>
+
+<main class="splash-content">
+    <div class="title-lockup">
+        <p class="title-kicker">A strategy game of shape and symmetry</p>
+        <img src="resources/images/dvc-logo-001.png" class="title-logo" alt="Da Vinci's Challenge" />
+        <p class="title-prompt">Choose your challenge</p>
     </div>
 
-    <div>
-        <button id="iconDoublePlayer" class="clicker">Play a friend</button>
-    </div>
-    
-    <div>
-        <button id="iconRules" class="clicker">How to play</button>
-    </div>
-    
-    <div class="hidden">
-        <button id="iconExit">Close menu</button> 
-    </div>
+    <nav id="action-icon-container" aria-label="Main menu">
+        <button id="iconSinglePlayer" class="clicker menu-action menu-action-primary" type="button">
+            <span class="menu-action-index">01</span>
+            <span>Single player</span>
+            <span class="menu-action-arrow" aria-hidden="true">&#8594;</span>
+        </button>
 
-    <div style="height: 100px;"></div>                
-</div>
+        <button id="iconDoublePlayer" class="clicker menu-action" type="button">
+            <span class="menu-action-index">02</span>
+            <span>Play a friend</span>
+            <span class="menu-action-arrow" aria-hidden="true">&#8594;</span>
+        </button>
+
+        <button id="iconRules" class="clicker menu-action menu-action-quiet" type="button">
+            <span class="menu-action-index">03</span>
+            <span>How to play</span>
+            <span class="menu-action-arrow" aria-hidden="true">&#8594;</span>
+        </button>
+
+        <div class="hidden">
+            <button id="iconExit" type="button">Close menu</button>
+        </div>
+    </nav>
+
+    <p class="splash-footer"><span></span> Da Vinci's Challenge <span></span></p>
+</main>
+
+<div class="splash-corner-mark" aria-hidden="true">DVC<br><span>EST. 2024</span></div>
 

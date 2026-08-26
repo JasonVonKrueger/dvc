@@ -23,6 +23,10 @@ let toastContain = null
 // Game entry point
 // *****************************************************************
 window.addEventListener("load", function () {
+    loadPlayerName().then(function (name) {
+        GAME.myPlayerName = name
+    })
+
     window.setTimeout(function () {
         initEventListeners()
     }, 3000)
@@ -157,18 +161,26 @@ function triggerEvent(elem, event) {
 // ****************************************************************
 // AJAX to create a game
 async function createGame(type) {
-    let response = await fetch(`/create/${type}`)
+    let url = `/create/${type}`
+
+    // reuse the name this device was given previously, if there is one
+    if (GAME.myPlayerName) {
+        url += `?playerName=${encodeURIComponent(GAME.myPlayerName)}`
+    }
+
+    let response = await fetch(url)
     let data = await response.json()
    
     GAME.id = data.gameID
     GAME.type = type
     GAME.myPlayerNumber = 1
+    GAME.myPlayerName = data.playerName
 
     // set the Game code input for two player modal
     inpCreateGameCode.value = GAME.id
 
     if (type === '(solo)') {
-        joinGame(1) // player 1 join
+        await joinGame(1) // player 1 join
         joinGame(2) // player 2 join (bot)
     }
 
@@ -210,6 +222,10 @@ async function joinGame(playerNumber) {
     let response = await fetch(`/join/${GAME.id}/${playerNumber}`)
     let data = await response.json()
 
+    if (playerNumber == GAME.myPlayerNumber) {
+        GAME.myPlayerName = data.playerName
+    }
+
     if (data.gameStatus === 'ready') {
         postData('/do', { event: 'START_GAME', gameID: GAME.id })
     }
@@ -235,7 +251,11 @@ async function postData(url = '', data = {}) {
 // ****************************************************************
 // initialize the game board layout
 function initBoard() {
-    $('#splash-screen').style.height = '0%'
+    const splash = $('#splash-screen')
+    splash.style.height = '0%'
+    splash.classList.add('no-pointer-events')
+    // wait for the collapse transition before removing it from the layout
+    setTimeout(() => splash.classList.add('hidden'), 500)
     $('#smoke-vid').classList.add('hidden')
     $('#fol-container').classList.remove('hidden')
     $('#player-cup-container').classList.remove('hidden')

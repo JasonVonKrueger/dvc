@@ -5,6 +5,7 @@ const GAMES = []
 const GAME_ID_LENGTH = 5
 const config = require('./conf/server')
 const Game = require('./lib/game')
+const store = require('./lib/store')
 const express = require('express')
 const WebSocket = require('ws')
 const path = require('path')
@@ -34,7 +35,7 @@ server.on('upgrade', function(request, socket, head) {
 })
 
 app.get('/create/:gameType', function(req, res) {
-    let game = createGame(req.params.gameType)
+    let game = createGame(req.params.gameType, req.query.playerName)
     res.send(game)
 })
 
@@ -45,6 +46,20 @@ app.get('/join/:gameID/:playerNumber', function(req, res) {
 
 app.get('/listgames', function(req, res) {
     res.send(GAMES) 
+})
+
+app.get('/history/games', function(req, res) {
+    res.send(store.listGames(Number(req.query.limit) || 50))
+})
+
+app.get('/history/games/:gameID', function(req, res) {
+    let record = store.getGame(req.params.gameID)
+
+    if (!record) {
+        return res.status(404).send({ errMsg: 'Game not found!' })
+    }
+
+    res.send(record)
 })
 
 app.post('/do', function(req, res) {
@@ -83,12 +98,13 @@ app.post('/do', function(req, res) {
    game functions
 ************************************************************************************ */
 
-function createGame(gameType) {
-    let game =  new Game(gameType)
+function createGame(gameType, playerOneName) {
+    let game =  new Game(gameType, playerOneName)
 
     if (game.id) {
         GAMES.push(game)
-        return { gameID: game.id }
+        store.saveGame(game)
+        return { gameID: game.id, playerName: game.playerOne.name }
     }
 }
 
@@ -109,7 +125,11 @@ function joinGame(gameID, playerNumber) {
             }
         }
 
-        return JSON.stringify({ gameStatus: currentGame.status, gameID: gameID })
+        store.updateGameState(currentGame)
+
+        let playerName = (playerNumber == 2) ? currentGame.playerTwo.name : currentGame.playerOne.name
+
+        return JSON.stringify({ gameStatus: currentGame.status, gameID: gameID, playerName: playerName })
     }
     else {
         return JSON.stringify({ errMsg: 'Game not found!' })
@@ -123,6 +143,8 @@ function startGame(gameID) {
     let currentGame = getGameIndex(gameID)
 
     if (currentGame) {
+        store.updateGameState(currentGame)
+
         broadcast(JSON.stringify({ type: 'BROADCAST', 
                                 event: 'GAME_STARTED', 
                                 gameType: currentGame.type,
@@ -143,6 +165,7 @@ function startMove(gameID, currentPlayer) {
     if (currentGame) {
         currentGame.currentPlayer = currentPlayer
         currentGame.moveStarted = true
+        store.updateGameState(currentGame)
 
         broadcast(JSON.stringify({ type: 'BROADCAST', 
                                 event: 'MOVE_STARTED', 
@@ -197,6 +220,7 @@ function startMove(gameID, currentPlayer) {
 
         console.log('************* SCORED: ' + symbol_formed.symbol)
 
+
         broadcast(JSON.stringify({ type: 'BROADCAST',
                                     event: 'SCORE',
                                     gameID: gameID,
@@ -206,6 +230,8 @@ function startMove(gameID, currentPlayer) {
                                     playerOneScore: currentGame.playerOne.score,
                                     playerTwoScore: currentGame.playerTwo.score  }));
     })
+
+    store.recordMove(currentGame, currentGame.currentPlayer, slotID, matches)
 
     broadcast(JSON.stringify({ type: 'BROADCAST', 
                             event: 'MOVE_COMPLETE',                                     
@@ -224,6 +250,7 @@ function startMove(gameID, currentPlayer) {
 
     if (currentGame) {
         currentGame.currentPlayer = (currentPlayer === 1) ? 2 : 1
+        store.updateGameState(currentGame)
 
         broadcast(JSON.stringify({ type: 'BROADCAST', 
                                 event: 'SWITCH_PLAYER', 

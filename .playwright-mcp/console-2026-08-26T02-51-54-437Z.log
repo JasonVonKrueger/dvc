@@ -1,0 +1,4 @@
+[     642ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:9115/resources/classes/Player.js:0
+[     645ms] [ERROR] Refused to execute script from 'http://localhost:9115/resources/classes/Player.js' because its MIME type ('text/html') is not executable, and strict MIME type checking is enabled. @ http://localhost:9115/index.html:0
+[    1270ms] [LOG] DVC socket server online @ http://localhost:9115/resources/js/socket.js:5
+[    1647ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ http://localhost:9115/index.html:0

@@ -80,6 +80,7 @@ button:hover {
 }
 
 #splash-screen {
+    isolation: isolate;
     height: 100%;
     width: 100%;
     position: fixed;
@@ -88,34 +89,173 @@ button:hover {
     background-color: rgb(0, 0, 0);
     overflow-y: hidden;
     transition: 0.5s;
-    background-color: #000;
+    background: #0b0c0d;
 }
 
 #smoke-vid {
     position: fixed;
-    right: 0;
-    bottom: 0;
-    min-width: 100%; 
+    inset: 0;
+    z-index: -3;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: .54;
+    filter: saturate(.62) contrast(1.16) brightness(.68);
+}
+
+.splash-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background:
+        linear-gradient(180deg, rgba(8, 10, 11, .46) 0%, rgba(8, 10, 11, .08) 34%, rgba(8, 10, 11, .82) 100%),
+        radial-gradient(circle at 50% 35%, rgba(183, 45, 35, .18), transparent 42%),
+        linear-gradient(90deg, rgba(8, 10, 11, .5), transparent 42%, rgba(8, 10, 11, .58));
+}
+
+.splash-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
     min-height: 100%;
+    padding: clamp(30px, 7vh, 84px) 24px 26px;
+    overflow-y: auto;
+}
+
+.title-lockup {
+    width: min(760px, 100%);
+    text-align: center;
+    animation: splash-rise .8s ease-out both;
+}
+
+.title-kicker,
+.title-prompt,
+.splash-footer,
+.splash-corner-mark {
+    font-family: var(--font-modal);
+    letter-spacing: .18em;
+    text-transform: uppercase;
+}
+
+.title-kicker {
+    margin: 0 0 13px;
+    color: rgba(239, 231, 218, .78);
+    font-size: clamp(.7rem, 1.5vw, .92rem);
 }
 
 .title-logo {
-    position: relative;
-    margin-top: 15%;
+    display: block;
+    width: min(650px, 100%);
     height: auto;
-    width: 100%;
-    -webkit-box-reflect: below -30px linear-gradient(to bottom, rgba(0,0,0,0.0), rgba(0,0,0,0.4));
+    margin: 0 auto;
+    filter: drop-shadow(0 18px 28px rgba(0, 0, 0, .72));
+}
+
+.title-prompt {
+    margin: 4px 0 0;
+    color: #d6a56d;
+    font-size: clamp(.68rem, 1.5vw, .88rem);
 }
 
 #action-icon-container {
-    margin-top: 15%;
-    position: relative;
-    height: auto;
-    text-align: center;
+    display: grid;
+    width: min(430px, 100%);
+    gap: 12px;
+    margin: clamp(20px, 5vh, 52px) 0;
+    animation: splash-rise .8s .16s ease-out both;
 }
 
-#action-icon-container > div {
-    margin: 40px;
+.menu-action {
+    display: grid;
+    grid-template-columns: 38px 1fr 22px;
+    align-items: center;
+    width: 100%;
+    min-height: 58px;
+    padding: 0 18px;
+    border: 1px solid rgba(232, 225, 213, .28);
+    border-radius: 3px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, .24);
+    background: rgba(20, 22, 22, .66);
+    color: #f5eee4;
+    font-family: var(--font-main);
+    font-size: clamp(.82rem, 2vw, 1rem);
+    letter-spacing: .08em;
+    text-align: left;
+    text-transform: uppercase;
+    transition: background-color .2s ease, border-color .2s ease, transform .2s ease;
+}
+
+.menu-action-primary {
+    border-color: rgba(218, 105, 73, .9);
+    background: linear-gradient(100deg, rgba(133, 27, 24, .94), rgba(83, 22, 22, .82));
+}
+
+.menu-action-quiet {
+    background: rgba(15, 17, 17, .42);
+    color: rgba(245, 238, 228, .76);
+}
+
+.menu-action:hover,
+.menu-action:focus-visible {
+    border-color: #e0b27b;
+    background-color: rgba(123, 35, 28, .86);
+    outline: none;
+    transform: translateX(5px);
+}
+
+.menu-action-index {
+    color: #d6a56d;
+    font-family: var(--font-modal);
+    font-size: .85rem;
+    letter-spacing: .08em;
+}
+
+.menu-action-arrow {
+    color: rgba(245, 238, 228, .56);
+    font-family: sans-serif;
+    font-size: 1.35rem;
+    font-weight: 300;
+    text-align: right;
+}
+
+.splash-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    color: rgba(239, 231, 218, .46);
+    font-size: .62rem;
+}
+
+.splash-footer span {
+    display: block;
+    width: 22px;
+    height: 1px;
+    background: currentColor;
+}
+
+.splash-corner-mark {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 2;
+    color: rgba(239, 231, 218, .48);
+    font-size: .75rem;
+    line-height: 1.25;
+    text-align: right;
+}
+
+.splash-corner-mark span {
+    color: #d6a56d;
+    font-size: .48rem;
+}
+
+@keyframes splash-rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 #music-onoff {
@@ -286,6 +426,10 @@ svg {
 /* Game pieces */
 .game-piece {
     position: absolute;
+    left: calc(50% + var(--piece-offset-x, 0px));
+    top: calc(50% + var(--piece-offset-y, 0px));
+    translate: -50% -50%;
+    rotate: var(--piece-rotation, 0deg);
     transform: scale(var(--game-piece-scale));    
 }
 
