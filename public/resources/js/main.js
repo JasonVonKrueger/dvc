@@ -5,11 +5,11 @@
 
 const $ = document.querySelector.bind(document)
 const cssVars = document.documentElement.style
-const sndClick = new Howl({ src: ['resources/sounds/click.mp3'] })
-const sndDroppingPieces = new Howl({ src: ['resources/sounds/dropping-pieces.mp3'] })
-const sndPickPiece = new Howl({ src: ['resources/sounds/pickpiece.mp3'] })
-const sndBackgroundMusic = new Howl({ src: ['resources/sounds/davinci-music.mp3'], loop: true })
-const sndSymbolFormed = new Howl({ src: ['resources/sounds/symbol-formed.mp3'] })
+const sndClick = new Howl({ src: ['resources/sounds/click.webm', 'resources/sounds/click.mp3'] })
+const sndDroppingPieces = new Howl({ src: ['resources/sounds/dropping-pieces.webm', 'resources/sounds/dropping-pieces.mp3'] })
+const sndPickPiece = new Howl({ src: ['resources/sounds/pickpiece.webm', 'resources/sounds/pickpiece.mp3'] })
+const sndBackgroundMusic = new Howl({ src: ['resources/sounds/davinci-music.webm', 'resources/sounds/davinci-music.mp3'], loop: true })
+const sndSymbolFormed = new Howl({ src: ['resources/sounds/symbol-formed.webm', 'resources/sounds/symbol-formed.mp3'] })
 
 
 const GAME = new Game()
@@ -155,6 +155,7 @@ ______                _   _                 ___                  _   _
 // ****************************************************************
 // for simulating events
 function triggerEvent(elem, event) {
+    if (!elem) return
     let clickEvent = new Event(event)
     elem.dispatchEvent(clickEvent)
 }
@@ -272,31 +273,37 @@ function initBoard() {
 // load initial game pieces
 function loadGamePieces() {
     // fill up the bowls
-    // 45 ovals and 27 triangles for each player
+    // 45 ovals and 27 triangles for each player (or 1/4 in dev testing mode)
     // 144 total spaces on the board
     
     sndDroppingPieces.play()
 
+    const isDevTesting = $('#chk-dev-testing') && $('#chk-dev-testing').checked
+    const totalOvals = isDevTesting ? Math.ceil(45 / 4) : 45
+    const totalTriangles = isDevTesting ? Math.ceil(27 / 4) : 27
+
     // white ovals
-    for (let i = 1; i <= 45; i++) {
+    for (let i = 1; i <= totalOvals; i++) {
         let whiteOval = new GamePiece('whiteOval', '#p1-oval-cup', i)
         GAME.white_ovals.push(whiteOval)
     }
 
     // white triangles
-    for (let i = 1; i <= 27; i++) {
+    for (let i = 1; i <= totalTriangles; i++) {
         let whiteTriangle = new GamePiece('whiteTriangle', '#p1-triangle-cup', i)
         GAME.white_triangles.push(whiteTriangle)
     }
 
-    // black ovals
-    for (let i = 1; i <= 45; i++) {
+    // black ovals (numbered 45 down to match server bot piece IDs)
+    let startBlackOval = 45 - totalOvals + 1
+    for (let i = startBlackOval; i <= 45; i++) {
         let blackOval = new GamePiece('blackOval', '#p2-oval-cup', i)
         GAME.black_ovals.push(blackOval)
     }
 
-    // black triangles
-    for (let i = 1; i <= 27; i++) {
+    // black triangles (numbered 27 down to match server bot piece IDs)
+    let startBlackTriangle = 27 - totalTriangles + 1
+    for (let i = startBlackTriangle; i <= 27; i++) {
         let blackTriangle = new GamePiece('blackTriangle', '#p2-triangle-cup', i)
         GAME.black_triangles.push(blackTriangle)
     }
@@ -406,7 +413,84 @@ function updateBoard(currentPlayer, slotID, availableSlots) {
         $('#fol-container').classList.add('no-pointer-events')
     } 
 
+    if (checkGameOver(availableSlots)) {
+        return
+    }
+
     postData('/do', { event: 'SWITCH_PLAYER', currentPlayer: GAME.currentPlayer, gameID: GAME.id })
+}
+
+// ****************************************************************
+// check if the game has ended
+function checkGameOver(availableSlots) {
+    const p1Ovals = document.querySelectorAll('#p1-oval-cup .game-piece').length
+    const p1Triangles = document.querySelectorAll('#p1-triangle-cup .game-piece').length
+    const p2Ovals = document.querySelectorAll('#p2-oval-cup .game-piece').length
+    const p2Triangles = document.querySelectorAll('#p2-triangle-cup .game-piece').length
+
+    const p1TotalPieces = p1Ovals + p1Triangles
+    const p2TotalPieces = p2Ovals + p2Triangles
+
+    let openOvalSlots = 0
+    let openTriSlots = 0
+
+    if (Array.isArray(availableSlots)) {
+        openOvalSlots = availableSlots.filter(s => s.startsWith('oval')).length
+        openTriSlots = availableSlots.filter(s => s.startsWith('triangle')).length
+    } else {
+        openOvalSlots = document.querySelectorAll('#fol-container [id^="oval"]:not(.slot-taken)').length
+        openTriSlots = document.querySelectorAll('#fol-container [id^="triangle"]:not(.slot-taken)').length
+    }
+
+    const totalOpenSlots = openOvalSlots + openTriSlots
+
+    // Condition 1: Either player runs out of both oval and triangle pieces
+    const playerOutOfPieces = (p1TotalPieces === 0) || (p2TotalPieces === 0)
+
+    // Condition 2: Nowhere to place an oval or triangle
+    const p1CanMove = (p1Ovals > 0 && openOvalSlots > 0) || (p1Triangles > 0 && openTriSlots > 0)
+    const p2CanMove = (p2Ovals > 0 && openOvalSlots > 0) || (p2Triangles > 0 && openTriSlots > 0)
+
+    const noValidMovesLeft = (totalOpenSlots === 0) || (!p1CanMove && !p2CanMove)
+
+    if (playerOutOfPieces || noValidMovesLeft) {
+        showGameOver()
+        return true
+    }
+
+    return false
+}
+
+// ****************************************************************
+// show game over screen
+function showGameOver() {
+    const p1ScoreText = $('#player1-score') ? $('#player1-score').innerText : '0'
+    const p2ScoreText = $('#player2-score') ? $('#player2-score').innerText : '0'
+    const p1Score = parseInt(p1ScoreText || '0', 10)
+    const p2Score = parseInt(p2ScoreText || '0', 10)
+
+    let winnerText = ''
+    if (p1Score > p2Score) {
+        winnerText = 'Player 1 wins the game!'
+    } else if (p2Score > p1Score) {
+        winnerText = 'Player 2 wins the game!'
+    } else {
+        winnerText = "It's a tie!"
+    }
+
+    const winnerEl = $('#game-over-winner')
+    if (winnerEl) {
+        winnerEl.innerText = winnerText
+    }
+
+    const modalEl = $('#game-over-modal')
+    if (modalEl) {
+        modalEl.classList.remove('hidden')
+        const contentEl = modalEl.querySelector('.modal-content')
+        if (contentEl) {
+            contentEl.classList.add('modal-zoom-in')
+        }
+    }
 }
 
 // ****************************************************************
@@ -429,12 +513,11 @@ function toggleBGMusic() {
 
 // ****************************************************************
 function toggleSNDEffects() {
-    if ($('#chk-sound-effects').checked == true) {
-        
-    }
-    else {
-        
-    }
+    const isMuted = !$('#chk-sound-effects').checked
+    sndClick.mute(isMuted)
+    sndDroppingPieces.mute(isMuted)
+    sndPickPiece.mute(isMuted)
+    sndSymbolFormed.mute(isMuted)
 }
 
 // ****************************************************************

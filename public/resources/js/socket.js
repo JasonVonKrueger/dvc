@@ -32,7 +32,7 @@ socket.onmessage = function(e) {
                     GAME.currentPlayer = message.currentPlayer
                     break
                 case 'MOVE_COMPLETE':
-                    updateBoard(message.currentPlayer, message.slotID)
+                    updateBoard(message.currentPlayer, message.slotID, message.availableSlots)
                     highlightScoredPatterns()
                     if (GAME.currentPlayer == GAME.myPlayerNumber) {
                         setTimeout(function () {
@@ -55,13 +55,22 @@ socket.onmessage = function(e) {
                     break
                 case 'STAGE_BOT':
                     // simulate click event to stage bot
-                    triggerEvent(document.getElementById(message.gamePiece), 'click')
+                    let botPiece = document.getElementById(message.gamePiece)
+                    if (!botPiece) {
+                        const cupSelector = message.gamePiece && message.gamePiece.includes('Oval') ? '#p2-oval-cup' : '#p2-triangle-cup'
+                        botPiece = document.querySelector(`${cupSelector} .game-piece`)
+                    }
+
+                    if (botPiece) {
+                        triggerEvent(botPiece, 'click')
+                    }
 
                     // pause for effect and send the move
                     setTimeout(function () {
+                        if (botPiece) {
+                            botPiece.remove()
+                        }
                         postData('/do', { event: 'MOVE_COMPLETE', gameID: GAME.id, currentPlayer: 2, slotID: message.slotID })
-
-                        document.getElementById(message.gamePiece).remove()
                     }, 3000)
 
                     break
@@ -126,7 +135,15 @@ socket.onmessage = function(e) {
                     break
                 case 'STAGE_BOT':
                     // simulate click event to stage bot
-                    triggerEvent(document.getElementById(message.gamePiece), 'click')
+                    let botPieceWs = document.getElementById(message.gamePiece)
+                    if (!botPieceWs) {
+                        const cupSelector = message.gamePiece && message.gamePiece.includes('Oval') ? '#p2-oval-cup' : '#p2-triangle-cup'
+                        botPieceWs = document.querySelector(`${cupSelector} .game-piece`)
+                    }
+
+                    if (botPieceWs) {
+                        triggerEvent(botPieceWs, 'click')
+                    }
 
                     // pause for effect and send the move
                     setTimeout(function () {
@@ -137,7 +154,9 @@ socket.onmessage = function(e) {
                             'slotID': message.slotID
                         }))
 
-                        document.getElementById(message.gamePiece).remove()
+                        if (botPieceWs) {
+                            botPieceWs.remove()
+                        }
                     }, 3000)
 
                     break

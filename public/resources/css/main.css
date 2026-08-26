@@ -253,6 +253,33 @@ button:hover {
     font-size: .48rem;
 }
 
+.splash-dev-testing {
+    position: fixed;
+    left: 24px;
+    bottom: 24px;
+    z-index: 2;
+}
+
+.dev-testing-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(239, 231, 218, .65);
+    font-family: var(--font-modal);
+    font-size: .75rem;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    user-select: none;
+}
+
+.dev-testing-label input[type="checkbox"] {
+    accent-color: #d6a56d;
+    cursor: pointer;
+    width: 14px;
+    height: 14px;
+}
+
 @keyframes splash-rise {
     from { opacity: 0; transform: translateY(14px); }
     to { opacity: 1; transform: translateY(0); }
@@ -521,6 +548,50 @@ svg {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, .45);
+}
+
+#game-over-modal {
+    padding-top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+#game-over-modal.hidden {
+    display: none;
+}
+
+.game-over-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: auto;
+    width: min(520px, 88%);
+    padding: 50px 30px;
+    box-sizing: border-box;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.game-over-title {
+    font-size: clamp(3.5rem, 9vw, 5.5rem);
+    font-family: var(--font-modal);
+    margin: 0;
+    color: #851b18;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.game-over-winner {
+    font-size: clamp(1.8rem, 4.5vw, 2.8rem);
+    font-family: var(--font-modal);
+    margin: 16px 0 0 0;
+    color: #222;
+    letter-spacing: 0.04em;
 }
 
 .modal-content {
