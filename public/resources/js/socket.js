@@ -1,6 +1,10 @@
-// Create WebSocket connection.
-//const socket = new WebSocket('wss://sockets.davincischallenge.app')
-const socket = new WebSocket('ws://localhost:9115/sockets')
+// Create WebSocket connection dynamically based on environment
+const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+const wsHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? 'localhost:9115' 
+    : window.location.host
+
+const socket = new WebSocket(`${wsProtocol}//${wsHost}/sockets`)
 
 socket.onopen = function(e) {
     console.log('DVC socket server online')
