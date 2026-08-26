@@ -33,6 +33,7 @@ socket.onmessage = function(e) {
                     break
                 case 'MOVE_COMPLETE':
                     updateBoard(message.currentPlayer, message.slotID)
+                    highlightScoredPatterns()
                     if (GAME.currentPlayer == GAME.myPlayerNumber) {
                         setTimeout(function () {
                             $('#fol-container').classList.remove('fol-zoom-in') 
@@ -65,7 +66,7 @@ socket.onmessage = function(e) {
 
                     break
                 case 'SCORE':
-                    score(message.currentPlayer, message.playerOneScore, message.playerTwoScore, message.symbol)  
+                    score(message.currentPlayer, message.playerOneScore, message.playerTwoScore, message.symbol, message.slots)
 
                     break
             }

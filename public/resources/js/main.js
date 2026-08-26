@@ -18,6 +18,7 @@ const MIN_DUR = 4000
 
 let backgroundMusicID = null
 let toastContain = null
+let pendingScoreHighlights = []
 
 // ****************************************************************
 // Game entry point
@@ -340,7 +341,7 @@ function stageGamePiece() {
 
 // ****************************************************************
 // player scored
-function score(currentPlayer, playerOneScore, playerTwoScore, symbol) {
+function score(currentPlayer, playerOneScore, playerTwoScore, symbol, slots) {
     let points_element = null
 
     if (currentPlayer == 1) {
@@ -356,7 +357,26 @@ function score(currentPlayer, playerOneScore, playerTwoScore, symbol) {
         $('#player2-score').innerHTML = playerTwoScore
     }
 
+    if (Array.isArray(slots)) {
+        pendingScoreHighlights.push(slots)
+    }
+
     //sndSymbolFormed.play(false)
+}
+
+function highlightScoredPatterns() {
+    pendingScoreHighlights.forEach(function (slots) {
+        slots.forEach(function (slotID) {
+            const slot = document.getElementById(slotID)
+            if (!slot) return
+
+            slot.classList.remove('scored-slot')
+            void slot.offsetWidth
+            slot.classList.add('scored-slot')
+        })
+    })
+
+    pendingScoreHighlights = []
 }
 
 function closeModal(element) {

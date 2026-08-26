@@ -328,6 +328,26 @@ svg {
     50% { stroke: none; }
 }
 
+.scored-slot {
+    animation: scored-slot-highlight 1s ease-out;
+}
+
+@keyframes scored-slot-highlight {
+    0% {
+        filter: brightness(1);
+        stroke-width: 21.9435;
+    }
+    40% {
+        filter: brightness(3.5) saturate(1.8) drop-shadow(0 0 16px #fff4a3);
+        stroke: #fff4a3;
+        stroke-width: 48;
+    }
+    100% {
+        filter: brightness(1);
+        stroke-width: 21.9435;
+    }
+}
+
 /*******************************************************************/
 /* header container */
 #header-container {

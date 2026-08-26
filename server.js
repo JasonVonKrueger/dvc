@@ -227,6 +227,7 @@ function startMove(gameID, currentPlayer) {
                                     currentPlayer: currentGame.currentPlayer,
                                     symbol: symbol_formed.symbol,
                                     points: symbol_formed.points,
+                                    slots: symbol_formed.slots,
                                     playerOneScore: currentGame.playerOne.score,
                                     playerTwoScore: currentGame.playerTwo.score  }));
     })
