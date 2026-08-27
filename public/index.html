@@ -22,27 +22,25 @@
     <link href="resources/css/main.css" rel="stylesheet">
 
     <script>
-        // this is what allows us to use the content blocks
-        window.onload = function () {
-            function a(a, b) {
-                var c = /^(?:file):/,
-                    d = new XMLHttpRequest(),
-                    e = 0;
-                d.onreadystatechange = function () {
-                    4 == d.readyState && (e = d.status), c.test(location.href) && d.responseText && (e = 200),
-                        4 == d
-                        .readyState && 200 == e && (a.outerHTML = d.responseText)
-                };
+        // Load layout content blocks concurrently using modern fetch
+        document.addEventListener('DOMContentLoaded', async () => {
+            const includes = document.querySelectorAll('[data-include]')
+            
+            await Promise.all(Array.from(includes).map(async (el) => {
+                const file = el.getAttribute('data-include')
                 try {
-                    d.open("GET", b, !0), d.send()
-                } catch (f) {}
-            }
-
-            var b,
-                c = document.getElementsByTagName("*");
-            for (b in c) c[b].hasAttribute && c[b].hasAttribute("data-include") && a(c[b], c[b].getAttribute(
-                "data-include"))
-        }
+                    const response = await fetch(file)
+                    if (response.ok) {
+                        const html = await response.text()
+                        el.outerHTML = html
+                    } else {
+                        console.error(`Failed to include ${file}: ${response.statusText}`)
+                    }
+                } catch (err) {
+                    console.error(`Error loading include ${file}:`, err)
+                }
+            }))
+        })
     </script>
 </head>
 

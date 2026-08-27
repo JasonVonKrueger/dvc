@@ -3,7 +3,9 @@
  */
 "use strict"
 
-const $ = document.querySelector.bind(document)
+const $ = (selector, scope = document) => scope.querySelector(selector)
+const $$ = (selector, scope = document) => Array.from(scope.querySelectorAll(selector))
+
 const cssVars = document.documentElement.style
 const sndClick = new Howl({ src: ['resources/sounds/click.webm', 'resources/sounds/click.mp3'] })
 const sndDroppingPieces = new Howl({ src: ['resources/sounds/dropping-pieces.webm', 'resources/sounds/dropping-pieces.mp3'] })
@@ -43,7 +45,7 @@ function initEventListeners() {
 
     /* --------------------------------------------------------- */
     // add mousedown listener for buttons
-    Array.from(document.querySelectorAll('.clicker')).forEach(function(clicker) {
+    $$('.clicker').forEach(function(clicker) {
         clicker.addEventListener('mousedown', function(e) {
             sndClick.play()
         })
@@ -57,10 +59,6 @@ function initEventListeners() {
     /* --------------------------------------------------------- */
     $('#iconDoublePlayer').addEventListener('click', function(e) {
         createGame('(friend)')
-        // socket.send(JSON.stringify({
-        //     'event': 'CREATE_GAME',
-        //     'gameType': 'FRIEND'
-        //   }))
     })
 
     /* --------------------------------------------------------- */
@@ -70,8 +68,11 @@ function initEventListeners() {
         $('#inpCreateGameCode').classList.remove('hidden')
         $('#sectionCopyCode').classList.remove('hidden')
 
-        inpCreateGameCode.focus()
-        inpCreateGameCode.select()  
+        const codeInput = $('#inpCreateGameCode')
+        if (codeInput) {
+            codeInput.focus()
+            codeInput.select()
+        }
     })
 
     /* --------------------------------------------------------- */
@@ -88,7 +89,8 @@ function initEventListeners() {
 
             if (char === ' ') {
                 el.setAttribute('style', 'width: 6px')
-            } else {
+            } 
+            else {
                 let m = '--i:' + c;
                 el.setAttribute('style', m);
             }
@@ -124,17 +126,7 @@ function initEventListeners() {
         if (GAME.moveStarted) {
             if (!slot.classList.contains('slot-taken')) {
                 if ((slot.id.indexOf('oval') > -1 && GAME.activeGamePiece.id.includes('Oval')) || (slot.id.indexOf('triangle') > -1 && GAME.activeGamePiece.id.includes('Triangle'))) {
-    
-                    postData('/do', { event: 'MOVE_COMPLETE', gameID: GAME.id, 'gameID': GAME.id, 'currentPlayer': GAME.currentPlayer, 'slotID': slot.id })
-
-                    // send the move to the server
-                    // socket.send(JSON.stringify({
-                    //     'event': 'MOVE_COMPLETE',
-                    //     'gameID': GAME.id,
-                    //     'currentPlayer': GAME.currentPlayer,
-                    //     'slotID': slot.id
-                    // }))
-    
+                    postData('/do', { event: 'MOVE_COMPLETE', gameID: GAME.id, 'gameID': GAME.id, 'currentPlayer': GAME.currentPlayer, 'slotID': slot.id })    
                     document.getElementById(GAME.activeGamePiece.id).remove()
                 }
             }
@@ -186,7 +178,10 @@ async function createGame(type) {
     connectGameStream(GAME.id)
 
     // set the Game code input for two player modal
-    inpCreateGameCode.value = GAME.id
+    const codeInput = $('#inpCreateGameCode')
+    if (codeInput) {
+        codeInput.value = GAME.id
+    }
 
     if (type === '(solo)') {
         await joinGame(1) // player 1 join
@@ -205,14 +200,8 @@ async function createGame(type) {
     
             /* Show a message if the user shares something */
             alert('Message sent!')
-    
-            //$('#overlay').style.height = '0%'
-            //$('#fol-container').classList.remove('hidden')
-            //$('#player-cup-container').classList.remove('hidden')
-           
-            //initBoard()
-            //loadGamePieces()
-        } catch (err) {
+        } 
+        catch (err) {
             /* This error will appear if the user cancels the action of sharing. */
             //alert(`Sharing API not supported on your browser. Error:\n\n${err}`)
         }
@@ -460,10 +449,10 @@ function updateBoard(currentPlayer, slotID, availableSlots) {
 // ****************************************************************
 // check if the game has ended
 function checkGameOver(availableSlots) {
-    const p1Ovals = document.querySelectorAll('#p1-oval-cup .game-piece').length
-    const p1Triangles = document.querySelectorAll('#p1-triangle-cup .game-piece').length
-    const p2Ovals = document.querySelectorAll('#p2-oval-cup .game-piece').length
-    const p2Triangles = document.querySelectorAll('#p2-triangle-cup .game-piece').length
+    const p1Ovals = $$('#p1-oval-cup .game-piece').length
+    const p1Triangles = $$('#p1-triangle-cup .game-piece').length
+    const p2Ovals = $$('#p2-oval-cup .game-piece').length
+    const p2Triangles = $$('#p2-triangle-cup .game-piece').length
 
     const p1TotalPieces = p1Ovals + p1Triangles
     const p2TotalPieces = p2Ovals + p2Triangles
@@ -475,8 +464,8 @@ function checkGameOver(availableSlots) {
         openOvalSlots = availableSlots.filter(s => s.startsWith('oval')).length
         openTriSlots = availableSlots.filter(s => s.startsWith('triangle')).length
     } else {
-        openOvalSlots = document.querySelectorAll('#fol-container [id^="oval"]:not(.slot-taken)').length
-        openTriSlots = document.querySelectorAll('#fol-container [id^="triangle"]:not(.slot-taken)').length
+        openOvalSlots = $$('#fol-container [id^="oval"]:not(.slot-taken)').length
+        openTriSlots = $$('#fol-container [id^="triangle"]:not(.slot-taken)').length
     }
 
     const totalOpenSlots = openOvalSlots + openTriSlots

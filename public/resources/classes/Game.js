@@ -31,50 +31,6 @@ class Game {
   }
 
   /* --------------------------------------------------------- */
-  // create = function(gameType) {
-  //   this.type = gameType
-
-  //   socket.send(JSON.stringify({
-  //     'event': 'CREATE_GAME',
-  //     'gameType': this.type
-  //   }))
-  // }
-
-  /* --------------------------------------------------------- */
-  // start = function() {
-  //   this.inProgress = true
-
-  //   socket.send(JSON.stringify({
-  //     'event': 'START_GAME',
-  //     'gameID': this.id
-  //   }))
-  // }
-
-  /* --------------------------------------------------------- */
-  // join = function(isBot) {
-  //   this.inProgress = true
-
-  //   socket.send(JSON.stringify({
-  //     'event': 'JOIN_GAME',
-  //     'gameID': this.id,
-  //     'isBot': isBot
-  //   }))
-  // }
-
-  /* --------------------------------------------------------- */
-  // switchPlayer = function (currentPlayer, isBot) {
-  //   GAME.currentPlayer = currentPlayer
-
-  //   // is player 2 a bot?
-  //   if (currentPlayer === 2 && isBot) {
-  //     socket.send(JSON.stringify({
-  //       'event': 'GO_BOT',
-  //       gameID: GAME.id
-  //     }))
-  //   }
-  // }
-
-  /* --------------------------------------------------------- */
   toggleFlashers = function(currentPlayer) {
     if (currentPlayer === 1) {
       $('#cupBlackTriangles').classList.remove('my-turn')
