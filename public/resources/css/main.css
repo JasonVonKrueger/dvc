@@ -170,7 +170,7 @@ button:hover {
 
 .menu-action {
     display: grid;
-    grid-template-columns: 38px 1fr 22px;
+    grid-template-columns: 1fr 22px;
     align-items: center;
     width: 100%;
     min-height: 58px;
@@ -592,6 +592,12 @@ svg {
     margin: 16px 0 0 0;
     color: #222;
     letter-spacing: 0.04em;
+}
+
+.game-over-btn {
+    margin-top: 32px;
+    width: min(320px, 100%);
+    cursor: pointer;
 }
 
 .modal-content {

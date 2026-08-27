@@ -1,5 +1,5 @@
 /* ************************************************************************************
-    @desc - single server process that serves pages and handles sockets
+    @desc - single server process that serves pages and handles SSE connections
 ************************************************************************************ */
 const GAMES = []
 const GAME_ID_LENGTH = 5
@@ -7,31 +7,58 @@ const config = require('./conf/server')
 const Game = require('./lib/game')
 const store = require('./lib/store')
 const express = require('express')
-const WebSocket = require('ws')
 const path = require('path')
 const app = express()
 app.use('/', express.static(path.join(__dirname, 'public')))
 app.use(express.json())
 
-// Set up a headless websocket server that prints any events that come in
-const wss = new WebSocket.Server({ noServer: true, path: '/sockets' })
+// Active SSE subscribers by gameID -> Set<Response>
+const sseSubscribers = new Map()
 
-// listen for websocket events
-wss.on('connection', function(socket) {
-    socket.on('message', function(message) {
-        let answer = null
-        message = JSON.parse(message.toString())      
+// ****************************************************************
+// SSE subscription endpoint per game
+app.get('/game/:gameID/events', function(req, res) {
+    const { gameID } = req.params
+    const lastEventId = parseInt(req.headers['last-event-id'] || req.query.lastEventId || '0', 10)
+
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
+    })
+
+    if (!sseSubscribers.has(gameID)) {
+        sseSubscribers.set(gameID, new Set())
+    }
+    sseSubscribers.get(gameID).add(res)
+
+    // Replay missed events if client reconnected with Last-Event-ID or lastEventId query param
+    if (lastEventId > 0) {
+        const missedEvents = store.getEventsSince(gameID, lastEventId)
+        missedEvents.forEach(evt => {
+            res.write(`id: ${evt.id}\nevent: ${evt.event_type}\ndata: ${evt.payload_json}\n\n`)
+        })
+    }
+
+    const heartbeat = setInterval(() => {
+        res.write(': heartbeat\n\n')
+    }, 15000)
+
+    req.on('close', function() {
+        clearInterval(heartbeat)
+        const set = sseSubscribers.get(gameID)
+        if (set) {
+            set.delete(res)
+            if (set.size === 0) {
+                sseSubscribers.delete(gameID)
+            }
+        }
     })
 })
 
 const server = app.listen(config.devserver.port || 9115, function() {
     console.log(`DVC app listening on port ${config.devserver.port}`)
-})
-
-server.on('upgrade', function(request, socket, head) {
-    wss.handleUpgrade(request, socket, head, function(socket) {
-        wss.emit('connection', socket, request)
-  })
 })
 
 app.get('/create/:gameType', function(req, res) {
@@ -60,6 +87,24 @@ app.get('/history/games/:gameID', function(req, res) {
     }
 
     res.send(record)
+})
+
+app.get('/game/:gameID/state', function(req, res) {
+    let currentGame = getGameIndex(req.params.gameID)
+
+    if (!currentGame) {
+        return res.status(404).send({ errMsg: 'Game not found!' })
+    }
+
+    res.send({
+        gameID: currentGame.id,
+        type: currentGame.type,
+        status: currentGame.status,
+        currentPlayer: currentGame.currentPlayer,
+        playerOne: currentGame.playerOne,
+        playerTwo: currentGame.playerTwo,
+        availableSlots: currentGame.availableSlots
+    })
 })
 
 app.post('/do', function(req, res) {
@@ -266,25 +311,50 @@ function startMove(gameID, currentPlayer) {
 }
 
  // ****************************************************************
- // send messages to the players in a game
- function broadcast(message) {
-    wss.clients.forEach(function each(client) {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(message) 
+ // send messages to subscribers of a game via SSE
+ function publishGameEvent(gameID, eventType, payload) {
+    let payloadObj = Object.assign({ type: 'BROADCAST', event: eventType, gameID: gameID }, payload)
+    let eventID = store.recordEvent(gameID, eventType, payloadObj)
+    payloadObj.eventId = eventID
+
+    let clients = sseSubscribers.get(gameID)
+    if (clients) {
+        let sseMessage = `id: ${eventID}\nevent: ${eventType}\ndata: ${JSON.stringify(payloadObj)}\n\n`
+        clients.forEach(function(client) {
+            client.write(sseMessage)
+        })
+    }
+    return eventID
+}
+
+// Legacy helper compatibility wrapper
+function broadcast(message) {
+    try {
+        let obj = typeof message === 'string' ? JSON.parse(message) : message
+        if (obj && obj.gameID && obj.event) {
+            publishGameEvent(obj.gameID, obj.event, obj)
         }
-    })
+    } catch (e) {
+        console.error('Broadcast parse error:', e.message)
+    }
 }
 
 // ****************************************************************
-// get active game index
+// get active game index (or load from store if not in memory)
 function getGameIndex(gameID) {
     if (GAMES) {
-        for (i=0; i<GAMES.length; i++) {
+        for (let i = 0; i < GAMES.length; i++) {
             if (GAMES[i].id === gameID) {
                 return GAMES[i]
             }      
         }
     }
     
+    let loadedGame = store.loadGameFromDB(gameID)
+    if (loadedGame) {
+        GAMES.push(loadedGame)
+        return loadedGame
+    }
+
     return false
 }

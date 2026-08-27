@@ -14,7 +14,7 @@ The main risks are in the server boundary rather than the visual client: game mu
 
 | Area | Role |
 | --- | --- |
-| `server.js` | Express application, WebSocket upgrade handling, game registry, and command dispatch |
+| `app.js` | Express application, WebSocket upgrade handling, game registry, and command dispatch |
 | `conf/server.js` | Development/production port configuration |
 | `lib/game.js` | Server-side game state, move bookkeeping, scoring, and bot selection |
 | `lib/pattern_index.js` | Reverse lookup from board slots to candidate scoring patterns |
@@ -28,7 +28,7 @@ The main risks are in the server boundary rather than the visual client: game mu
 
 ## Runtime Architecture
 
-1. `server.js` creates an Express app and serves `public/` as static content.
+1. `app.js` creates an Express app and serves `public/` as static content.
 2. A `ws` server is attached to the same HTTP server through the `/sockets` upgrade path.
 3. `GET /create/:gameType` constructs a `Game` and stores it in the process-local `GAMES` array.
 4. `GET /join/:gameID/:playerNumber` marks a player as joined. In solo mode, player 2 is marked as the bot and the game becomes ready.
@@ -107,7 +107,7 @@ Bot selection exists in the server game model and also in `lib/player.js`. The c
 
 ### Medium priority: no executable development workflow
 
-`package.json` has an empty `start` script, and `npm test` intentionally exits with an error because no tests are configured. There is no lint, format, type-check, or CI configuration. The documented/manual fallback is `node server.js`, but a project should provide a working `npm start` and at least a small test suite for game rules and command validation.
+`package.json` has an empty `start` script, and `npm test` intentionally exits with an error because no tests are configured. There is no lint, format, type-check, or CI configuration. The documented/manual fallback is `node app.js`, but a project should provide a working `npm start` and at least a small test suite for game rules and command validation.
 
 ### Low priority: dependency and maintenance clarity
 

@@ -5,8 +5,8 @@
 **Da Vinci's Challenge** (DVC) is a full-stack, real-time strategy game inspired by the geometric construction drawn by Leonardo da Vinci. Players alternate placing oval and triangular pieces onto a Flower of Life board layout to complete geometric scoring patterns (triangles, ovals, stars, flowers, etc.).
 
 The system architecture consists of:
-- **Client (Frontend)**: Vanilla JavaScript ES6+, HTML5, and CSS3 styled with a custom parchment aesthetic. Sound effects are powered by **Howler.js**.
-- **Server (Backend)**: Node.js, Express web server, and a `ws` WebSocket broadcast server.
+- **Client (Frontend)**: Vanilla JavaScript ES6+, HTML5, and CSS3 styled with a custom parchment aesthetic. Real-time updates use native **Server-Sent Events (SSE)** via `EventSource`. Sound effects are powered by **Howler.js**.
+- **Server (Backend)**: Node.js, Express web server with dedicated SSE streams.
 - **Persistence Layer**: Local SQLite database via `lib/store.js` / `lib/db.js` on the server and IndexedDB storage on the client for local player identity.
 
 ---
@@ -16,23 +16,23 @@ The system architecture consists of:
 ```mermaid
 graph TD
     Client["Browser (Vanilla JS Client)"]
-    Express["Express HTTP Server (server.js)"]
-    WSS["WebSocket Server (ws /sockets)"]
+    Express["Express HTTP Server (app.js)"]
+    SSE["SSE Endpoint (/game/:id/events)"]
     GameEngine["Game Engine & Bot (lib/game.js, lib/bot.js)"]
     DB[("SQLite Store (lib/store.js)")]
 
     Client -- "HTTP POST /do, GET /create, GET /join" --> Express
     Express -- "Mutates / Controls State" --> GameEngine
-    GameEngine -- "Persists Game & Moves" --> DB
-    Express -- "Triggers Notifications" --> WSS
-    WSS -- "WS JSON Broadcasts" --> Client
+    GameEngine -- "Persists Game, Moves & Event Log" --> DB
+    Express -- "Triggers SSE Events" --> SSE
+    SSE -- "SSE text/event-stream" --> Client
 ```
 
 ---
 
 ## Key Modules & Responsibilities
 
-### 1. Server & Routing (`server.js`)
+### 1. Server & Routing (`app.js`)
 - **Static Asset Delivery**: Serves client files from the `public/` directory.
 - **HTTP REST Endpoints**:
   - `GET /create/:gameType`: Instantiates a new `Game` model.
@@ -52,7 +52,7 @@ graph TD
 ### 3. Client Architecture (`public/`)
 - **`public/index.html`**: Main HTML document providing the board viewport, scoreboards, and modal layers (Rules, Options, Play a Friend, Game Over).
 - **`public/resources/js/main.js`**: Client entry point managing DOM event listeners, board animations, game setup, move submission, sound effects, and testing mode toggles.
-- **`public/resources/js/socket.js`**: WebSocket client that listens for `BROADCAST` events (`GAME_STARTED`, `MOVE_COMPLETE`, `SWITCH_PLAYER`, `STAGE_BOT`, `SCORE`) and updates local DOM state accordingly.
+- **`public/resources/js/sse.js`**: Server-Sent Events client that listens for streamed events (`GAME_STARTED`, `MOVE_COMPLETE`, `SWITCH_PLAYER`, `STAGE_BOT`, `SCORE`) and updates local DOM state accordingly.
 - **`public/resources/classes/`**:
   - `Game.js`: Client-side state container.
   - `GamePiece.js`: Manages visual game piece instantiation, SVG placement, and click handlers in player cups.
@@ -66,7 +66,7 @@ sequenceDiagram
     autonumber
     actor Player as Browser Player
     participant Client as Client JS (main.js / socket.js)
-    participant Server as Express Server (server.js)
+    participant Server as Express Server (app.js)
     participant Game as Game Engine (lib/game.js)
     participant WS as WebSocket Server
 

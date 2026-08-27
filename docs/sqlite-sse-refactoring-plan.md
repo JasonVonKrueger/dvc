@@ -74,7 +74,7 @@ CREATE INDEX IF NOT EXISTS idx_game_events ON game_events (game_id, id);
 
 ### Phase 2: Server-Sent Events (SSE) Endpoint
 
-#### 2.1 SSE Subscriber Management (`server.js`)
+#### 2.1 SSE Subscriber Management (`app.js`)
 Replace WebSocket client tracking with an SSE subscriber registry using Express:
 
 ```javascript
@@ -118,7 +118,7 @@ app.get('/game/:gameID/events', (req, res) => {
 })
 ```
 
-#### 2.2 SSE Event Publisher (`server.js`)
+#### 2.2 SSE Event Publisher (`app.js`)
 Replace the global WebSocket `broadcast()` function with a scoped SSE publisher:
 
 ```javascript
@@ -140,7 +140,7 @@ function publishGameEvent(gameID, eventType, payload) {
 
 ### Phase 3: Command & Endpoint Refactoring
 
-#### 3.1 Update Command Handlers (`server.js`)
+#### 3.1 Update Command Handlers (`app.js`)
 Refactor the `POST /do` event handlers to call `publishGameEvent()`:
 - `START_GAME` $\rightarrow$ publish `game_started`
 - `MOVE_STARTED` $\rightarrow$ publish `move_started`
@@ -148,7 +148,7 @@ Refactor the `POST /do` event handlers to call `publishGameEvent()`:
 - `SWITCH_PLAYER` $\rightarrow$ publish `switch_player`
 - `GO_BOT` $\rightarrow$ execute bot decision and publish `stage_bot`
 
-#### 3.2 State Recovery Route (`server.js`)
+#### 3.2 State Recovery Route (`app.js`)
 Add a state rehydration endpoint:
 - `GET /game/:gameID/state`: Returns the full current game snapshot (placed slots, scores, turn, remaining pieces) directly from SQLite / Game Engine so clients can restore full UI state upon page refresh.
 
@@ -217,7 +217,7 @@ On game creation or join (`createGame` / `joinGame`), invoke `connectGameStream(
 
 ### Phase 5: Dependency Cleanup & Verification
 
-1. **Package Cleanup**: Remove `ws` (and `socket.io` if present) from `package.json` and remove WebSocket server initialization in `server.js`.
+1. **Package Cleanup**: Remove `ws` (and `socket.io` if present) from `package.json` and remove WebSocket server initialization in `app.js`.
 2. **Verification & Testing Checklist**:
    - [ ] **Single Player (Human vs. Bot)**: All turns and piece placements propagate smoothly via SSE.
    - [ ] **Play a Friend**: Simultaneous updates received in both client browser windows.

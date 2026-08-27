@@ -140,6 +140,11 @@ function initEventListeners() {
             }
         }
     })
+
+    /* --------------------------------------------------------- */
+    $('#btnTakeThyLeave').addEventListener('click', function(e) {
+        window.location.reload()
+    })
 }
 
 /* ************************************************************************************
@@ -177,6 +182,8 @@ async function createGame(type) {
     GAME.type = type
     GAME.myPlayerNumber = 1
     GAME.myPlayerName = data.playerName
+
+    connectGameStream(GAME.id)
 
     // set the Game code input for two player modal
     inpCreateGameCode.value = GAME.id
@@ -221,6 +228,10 @@ async function createGame(type) {
 // ****************************************************************
 // AJAX to join a game
 async function joinGame(playerNumber) {
+    if (GAME.id) {
+        connectGameStream(GAME.id)
+    }
+
     let response = await fetch(`/join/${GAME.id}/${playerNumber}`)
     let data = await response.json()
 
@@ -230,6 +241,32 @@ async function joinGame(playerNumber) {
 
     if (data.gameStatus === 'ready') {
         postData('/do', { event: 'START_GAME', gameID: GAME.id })
+    }
+}
+
+// ****************************************************************
+// State recovery from server for rehydration / refresh
+async function restoreGameState(gameID) {
+    try {
+        let response = await fetch(`/game/${gameID}/state`)
+        if (!response.ok) return false
+        let data = await response.json()
+
+        GAME.id = data.gameID
+        GAME.type = data.type
+        GAME.currentPlayer = data.currentPlayer
+        if (data.playerOne) {
+            $('#player1-score').innerHTML = data.playerOne.score || 0
+        }
+        if (data.playerTwo) {
+            $('#player2-score').innerHTML = data.playerTwo.score || 0
+        }
+
+        connectGameStream(gameID)
+        return true
+    } catch (err) {
+        console.error('Error restoring game state:', err)
+        return false
     }
 }
 

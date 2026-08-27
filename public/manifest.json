@@ -1,14 +1,27 @@
 {
-    "short_name": "DVC",
-    "name": "Da Vinci's Challenge",
-    "icons": [{
+  "short_name": "DVC",
+  "name": "Da Vinci's Challenge",
+  "description": "A strategy game of shape and symmetry inspired by Leonardo da Vinci.",
+  "id": "/index.html",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#0b0c0d",
+  "theme_color": "#0b0c0d",
+  "orientation": "any",
+  "categories": ["games", "strategy", "entertainment"],
+  "icons": [
+    {
       "src": "resources/images/ios/touch-icon-iphone.png",
       "type": "image/png",
-      "sizes": "200x200"
-    }],
-    "id": "/index.html",
-    "start_url": "/index.html",
-    "display": "fullscreen",
-    "scope": "/",
-    "description": "A game."
-  }
+      "sizes": "200x200",
+      "purpose": "any"
+    },
+    {
+      "src": "resources/images/ios/touch-icon-ipad.png",
+      "type": "image/png",
+      "sizes": "152x152",
+      "purpose": "any"
+    }
+  ],
+  "scope": "/"
+}

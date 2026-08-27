@@ -315,7 +315,7 @@ diamond	1 anchor oval + 2 fan triangles	72
 triangle	3 ovals equidistant from a shared external vertex	54
 Every category besides flower/star reconstructed to the exact same count as your original hand-typed lists — which is good news the other direction too: it means those lists were actually correct all along, they just couldn't be proven correct before.
 
-Same drop-in score_patterns.json as last time (just replace the file — game.js, pattern_index.js, and server.js don't need to change, since they just consume whatever's in the JSON). I re-ran the full test suite against it, including a check that overlapping patterns (e.g. a completed hourglass that also happens to complete a smaller gem inside it) still both fire correctly — they do.
+Same drop-in score_patterns.json as last time (just replace the file — game.js, pattern_index.js, and app.js don't need to change, since they just consume whatever's in the JSON). I re-ran the full test suite against it, including a check that overlapping patterns (e.g. a completed hourglass that also happens to complete a smaller gem inside it) still both fire correctly — they do.
 
 
 Score patterns
