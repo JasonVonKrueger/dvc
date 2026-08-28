@@ -59,7 +59,7 @@ Players should be able to connect via two distinct methods:
 
 #### A. Shareable Direct URL (`?join=CODE`)
 - When Player 1 clicks **Play a Friend**, the Web Share API (or clipboard copy) provides a URL formatted as:
-  `https://dev.davincischallenge.app/?join=X7K9P`
+  `https://dvc.nervoussow.com/?join=X7K9P`
 - On client load (`DOMContentLoaded` in `main.js`), check for the `join` query parameter in `window.location.search`.
 - If present, auto-fill the game ID, set `GAME.myPlayerNumber = 2`, connect the SSE stream (`connectGameStream(gameID)`), and execute `joinGame(2)`.
 

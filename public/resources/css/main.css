@@ -629,20 +629,44 @@ svg {
     background-color: cornsilk;
 }
 
-#point-values {
+.point-values {
     display: grid;
     grid-template-columns: auto auto auto;
     border-top: .5px solid #666;
 }
   
-#point-values > div {
+.point-values > div {
     margin-top: 4px;
     text-align: center; 
     border-bottom: .2px dashed #888; 
 }
 
-#point-values > div > img {
+.point-values > div > img {
     width: 35px;
+}
+
+.point-values-compact > div {
+    margin-top: 3px;
+    padding-bottom: 3px;
+}
+
+.point-values-compact > div > img {
+    width: 26px;
+}
+
+.point-values-options-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+}
+
+.point-values-options-row .menu-action {
+    width: min(320px, 100%);
+}
+
+#point-values-modal .modal-content {
+    width: calc(90% * 0.8 * 1.1);
+    height: calc(80% * 1.25);
 }
 
 .modal-zoom-in {

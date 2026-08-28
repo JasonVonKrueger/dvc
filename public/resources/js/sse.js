@@ -42,9 +42,10 @@ function connectGameStream(gameID) {
                 break
             case 'SWITCH_PLAYER':
                 GAME.currentPlayer = message.currentPlayer
+                updatePlayerLocks()
 
-                // is player 2 a bot?
-                if (message.currentPlayer == 2) {
+                // is player 2 a bot? (solo mode only)
+                if (message.currentPlayer == 2 && GAME.type === '(solo)') {
                     postData('/do', { event: 'GO_BOT', gameID: GAME.id })
                 }
                 break
@@ -68,13 +69,16 @@ function connectGameStream(gameID) {
                     postData('/do', { event: 'MOVE_COMPLETE', gameID: GAME.id, currentPlayer: 2, slotID: message.slotID })
                 }, 3000)
                 break
+            case 'PLAYER_JOINED':
+                showToast((message.playerName || 'Player 2') + ' joined the game!')
+                break
             case 'SCORE':
                 score(message.currentPlayer, message.playerOneScore, message.playerTwoScore, message.symbol, message.slots)
                 break
         }
     }
 
-    const knownEvents = ['GAME_STARTED', 'MOVE_STARTED', 'MOVE_COMPLETE', 'SWITCH_PLAYER', 'STAGE_BOT', 'SCORE']
+    const knownEvents = ['GAME_STARTED', 'MOVE_STARTED', 'MOVE_COMPLETE', 'SWITCH_PLAYER', 'STAGE_BOT', 'SCORE', 'PLAYER_JOINED']
     knownEvents.forEach(function (eventType) {
         eventSource.addEventListener(eventType, function (e) {
             try {

@@ -170,9 +170,18 @@ function joinGame(gameID, playerNumber) {
             }
         }
 
+        // a friend match is ready once both human players have joined
+        if (currentGame.type === '(friend)' && currentGame.playerOne.joined && currentGame.playerTwo.joined) {
+            currentGame.status = 'ready'
+        }
+
         store.updateGameState(currentGame)
 
         let playerName = (playerNumber == 2) ? currentGame.playerTwo.name : currentGame.playerOne.name
+
+        if (playerNumber == 2) {
+            publishGameEvent(gameID, 'PLAYER_JOINED', { playerNumber: 2, playerName: playerName })
+        }
 
         return JSON.stringify({ gameStatus: currentGame.status, gameID: gameID, playerName: playerName })
     }

@@ -30,9 +30,19 @@ window.addEventListener("load", function () {
         GAME.myPlayerName = name
     })
 
-    window.setTimeout(function () {
-        initEventListeners()
-    }, 3000)
+    // a shared "Play a Friend" link looks like /?join=X7K9P
+    const joinCode = new URLSearchParams(window.location.search).get('join')
+
+    if (joinCode) {
+        window.setTimeout(function () {
+            initEventListeners()
+            joinAsGuest(joinCode.toUpperCase())
+        }, 500)
+    } else {
+        window.setTimeout(function () {
+            initEventListeners()
+        }, 3000)
+    }
 })
 
 // ****************************************************************
@@ -58,12 +68,15 @@ function initEventListeners() {
 
     /* --------------------------------------------------------- */
     $('#iconDoublePlayer').addEventListener('click', function(e) {
-        createGame('(friend)')
+        GAME.type = '(friend)'
+        $('#twoPlayerModal').classList.remove('hidden')
     })
 
     /* --------------------------------------------------------- */
-    $('#btnGetGameCode').addEventListener('click', function(e) {
+    $('#btnGetGameCode').addEventListener('click', async function(e) {
         e.preventDefault()
+        await createGame('(friend)')
+
         $('#btnGetGameCode').classList.add('hidden')
         $('#inpCreateGameCode').classList.remove('hidden')
         $('#sectionCopyCode').classList.remove('hidden')
@@ -72,6 +85,19 @@ function initEventListeners() {
         if (codeInput) {
             codeInput.focus()
             codeInput.select()
+        }
+
+        // best-effort share sheet; falls back to manual copy
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: "Da Vinci's Challenge",
+                    url: window.location.origin + '/?join=' + GAME.id,
+                    text: "Let's play!"
+                })
+            }
+        } catch (err) {
+            // user cancelled or share unsupported -- copy button covers this case
         }
     })
 
@@ -110,8 +136,29 @@ function initEventListeners() {
     /* --------------------------------------------------------- */
     $('#menu-icon').addEventListener('click', function(e) {
         //e.preventDefault()
+        $('#point-values-modal').classList.remove('hidden')
+        $('.modal-content').classList.add('modal-zoom-in')
+    })
+
+    /* --------------------------------------------------------- */
+    $('#btnOpenOptions').addEventListener('click', function(e) {
+        closeModal('point-values-modal')
         $('#game-options').classList.remove('hidden')
         $('.modal-content').classList.add('modal-zoom-in')
+    })
+
+    /* --------------------------------------------------------- */
+    $('#point-values-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal('point-values-modal')
+        }
+    })
+
+    /* --------------------------------------------------------- */
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !$('#point-values-modal').classList.contains('hidden')) {
+            closeModal('point-values-modal')
+        }
     })
 
     /* --------------------------------------------------------- */
@@ -131,6 +178,20 @@ function initEventListeners() {
                 }
             }
         }
+    })
+
+    /* --------------------------------------------------------- */
+    $('#inpJoinGameCode').addEventListener('input', function(e) {
+        e.target.value = e.target.value.toUpperCase()
+        $('#btnJoinGame').disabled = e.target.value.trim().length !== 5
+    })
+
+    /* --------------------------------------------------------- */
+    $('#btnJoinGame').addEventListener('click', async function(e) {
+        e.preventDefault()
+        const code = $('#inpJoinGameCode').value.trim().toUpperCase()
+        if (code.length !== 5) return
+        await joinAsGuest(code)
     })
 
     /* --------------------------------------------------------- */
@@ -189,29 +250,8 @@ async function createGame(type) {
     }
 
     if (type === '(friend)') {
-        $('#twoPlayerModal').classList.remove('hidden')
-
-        let title = "Da Vinci's Challenge"
-        let url = 'https://dev.davincischallenge.app/join/' + GAME.id
-        let text = "Let's play!"
-
-        try {
-            await navigator.share({title, url, text})
-    
-            /* Show a message if the user shares something */
-            alert('Message sent!')
-        } 
-        catch (err) {
-            /* This error will appear if the user cancels the action of sharing. */
-            //alert(`Sharing API not supported on your browser. Error:\n\n${err}`)
-        }
+        await joinGame(1) // mark the host as joined
     }
-
-
-
-    //initBoard()
-   // GAME.start()
-
 }
 
 // ****************************************************************
@@ -224,6 +264,11 @@ async function joinGame(playerNumber) {
     let response = await fetch(`/join/${GAME.id}/${playerNumber}`)
     let data = await response.json()
 
+    if (data.errMsg) {
+        showToast(data.errMsg)
+        return false
+    }
+
     if (playerNumber == GAME.myPlayerNumber) {
         GAME.myPlayerName = data.playerName
     }
@@ -231,6 +276,21 @@ async function joinGame(playerNumber) {
     if (data.gameStatus === 'ready') {
         postData('/do', { event: 'START_GAME', gameID: GAME.id })
     }
+
+    return true
+}
+
+// ****************************************************************
+// AJAX to join a friend's game as player 2 using a shared code
+async function joinAsGuest(gameID) {
+    GAME.id = gameID
+    GAME.type = '(friend)'
+    GAME.myPlayerNumber = 2
+
+    const joined = await joinGame(2)
+    if (!joined) return
+
+    $('#twoPlayerModal').classList.add('hidden')
 }
 
 // ****************************************************************
@@ -287,12 +347,35 @@ function initBoard() {
     $('#smoke-vid').classList.add('hidden')
     $('#fol-container').classList.remove('hidden')
     $('#player-cup-container').classList.remove('hidden')
+    $('#twoPlayerModal').classList.add('hidden')
+    $('#waitingForPlayer').classList.add('hidden')
 
     let FOL_WIDTH = $('#svg7243').clientWidth
     cssVars.setProperty('--fol-pedestal-size', FOL_WIDTH + 'px')
     cssVars.setProperty('--fol-pedestal-base-size', FOL_WIDTH + 15 + 'px')
 
     loadGamePieces()
+    updatePlayerLocks()
+}
+
+// ****************************************************************
+// in 2-player mode, restrict each player to their own cups and turn
+function updatePlayerLocks() {
+    if (GAME.type !== '(friend)') return
+
+    const isMyTurn = (GAME.currentPlayer == GAME.myPlayerNumber)
+
+    const myCups = GAME.myPlayerNumber === 1 ? ['#p1-oval-cup', '#p1-triangle-cup'] : ['#p2-oval-cup', '#p2-triangle-cup']
+    const theirCups = GAME.myPlayerNumber === 1 ? ['#p2-oval-cup', '#p2-triangle-cup'] : ['#p1-oval-cup', '#p1-triangle-cup']
+
+    myCups.forEach(selector => $(selector) && $(selector).classList.remove('no-pointer-events'))
+    theirCups.forEach(selector => $(selector) && $(selector).classList.add('no-pointer-events'))
+
+    if (isMyTurn) {
+        $('#fol-container').classList.remove('no-pointer-events')
+    } else {
+        $('#fol-container').classList.add('no-pointer-events')
+    }
 }
 
 // ****************************************************************
@@ -527,14 +610,6 @@ function toggleBGMusic() {
     else {
         sndBackgroundMusic.stop()
     }
-
-    // if (sndBackgroundMusic.playing(backgroundMusicID)) {
-    //     $('#chk-background-music').checked = false
-    //     sndBackgroundMusic.stop()
-    // } else {
-    //     $('#chk-background-music').checked = true
-    //     backgroundMusicID = sndBackgroundMusic.play()
-    // }  
 }
 
 // ****************************************************************
