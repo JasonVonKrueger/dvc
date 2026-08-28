@@ -33,10 +33,12 @@
                     if (response.ok) {
                         const html = await response.text()
                         el.outerHTML = html
-                    } else {
+                    } 
+                    else {
                         console.error(`Failed to include ${file}: ${response.statusText}`)
                     }
-                } catch (err) {
+                } 
+                catch (err) {
                     console.error(`Error loading include ${file}:`, err)
                 }
             }))
