@@ -86,24 +86,23 @@ function initEventListeners() {
             codeInput.focus()
             codeInput.select()
         }
-
-        // best-effort share sheet; falls back to manual copy
-        try {
-            if (navigator.share) {
-                await navigator.share({
-                    title: "Da Vinci's Challenge",
-                    url: window.location.origin + '/?join=' + GAME.id,
-                    text: "Let's play!"
-                })
-            }
-        } catch (err) {
-            // user cancelled or share unsupported -- copy button covers this case
-        }
     })
 
     /* --------------------------------------------------------- */
-    $('#btnCopy').addEventListener('click', function(e) {
-        document.execCommand("copy")  
+    $('#btnCopy').addEventListener('click', async function(e) {
+        const codeInput = $('#inpCreateGameCode')
+        const code = codeInput ? codeInput.value : ''
+
+        try {
+            await navigator.clipboard.writeText(code)
+        } catch (err) {
+            // fall back to legacy selection-based copy for older browsers
+            if (codeInput) {
+                codeInput.focus()
+                codeInput.select()
+                document.execCommand('copy')
+            }
+        }
 
         $('#waitingForPlayer').classList.remove('hidden')
 
@@ -196,6 +195,11 @@ function initEventListeners() {
 
     /* --------------------------------------------------------- */
     $('#btnTakeThyLeave').addEventListener('click', function(e) {
+        window.location.reload()
+    })
+
+    /* --------------------------------------------------------- */
+    $('#btnExitGame').addEventListener('click', function(e) {
         window.location.reload()
     })
 }

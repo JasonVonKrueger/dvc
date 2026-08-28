@@ -656,12 +656,17 @@ svg {
 
 .point-values-options-row {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
     margin-top: 12px;
 }
 
 .point-values-options-row .menu-action {
-    width: min(320px, 100%);
+    width: min(240px, 100%);
+    min-height: 40px;
+    padding: 0 14px;
+    font-size: clamp(.7rem, 1.6vw, .82rem);
 }
 
 #point-values-modal .modal-content {
@@ -685,6 +690,10 @@ svg {
 /* "modal input" */
 #twoPlayerModalContent input {
     font-size: 1.5rem;
+}
+
+#twoPlayerModalContent .menu-action {
+    margin-top: 10px;
 }
 
 /*******************************************************************/
