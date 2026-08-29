@@ -59,7 +59,6 @@ button {
     font-size: 1em;
     color: #fff;
     width: 60%;
-    xbackground-image: linear-gradient(to top, rgb(117, 112, 112), rgb(217, 182, 182));
     background-image: linear-gradient(to bottom, rgb(65, 62, 62), rgb(126, 22, 22));
 }
 
@@ -384,9 +383,6 @@ svg {
     width: 100%;
     height: 60px;
     border-bottom: 5px solid #000;
-    xbackground: linear-gradient(146deg, rgba(130,42,46,1) 28%, rgba(194,48,16,1) 100%);
-    xbackground-image: url('../images/wood-plank1.jpeg');
-    xbackground-color: #4b0a0a;
     background-image: url('../images/DVC-App-wood.svg');
     background-repeat: no-repeat;
     background-size: cover;
@@ -437,8 +433,6 @@ svg {
     width: 100%;
     height: auto;
     padding: 10px 2.5px;
-    xbackground-color: #5c1818;
-    xbackground-image: linear-gradient(to bottom, rgb(65, 62, 62), rgb(126, 22, 22));
     background-image: url('../images/DVC-App-wood.svg');
     background-repeat: no-repeat;
     background-size: cover;
@@ -506,26 +500,6 @@ svg {
     animation-iteration-count: infinite;
     animation-fill-mode: ease-out;  
 }
-
-/* .shaker {
-    animation-name: shake;
-    animation-duration: .2s;
-    animation-iteration-count: 6;
-}
-
-@keyframes shake {
-    0% { transform: translate(1px, 1px) rotate(0deg); }
-    10% { transform: translate(-1px, -2px) rotate(-1deg); }
-    20% { transform: translate(-3px, 0px) rotate(1deg); }
-    30% { transform: translate(3px, 2px) rotate(0deg); }
-    40% { transform: translate(1px, -1px) rotate(1deg); }
-    50% { transform: translate(-1px, 2px) rotate(-1deg); }
-    60% { transform: translate(-3px, 1px) rotate(0deg); }
-    70% { transform: translate(3px, 1px) rotate(-1deg); }
-    80% { transform: translate(-1px, -1px) rotate(1deg); }
-    90% { transform: translate(1px, 2px) rotate(0deg); }
-    100% { transform: translate(1px, -2px) rotate(-1deg); }
-} */
 
 @keyframes grow {
     to { transform: scale(1.3); }
