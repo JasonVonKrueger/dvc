@@ -1,7 +1,9 @@
-name: Deploy to Production
+name: CI
 
 on:
   push:
+    branches: [ main ]
+  pull_request:
     branches: [ main ]
 
 jobs:
@@ -14,22 +16,3 @@ jobs:
           node-version: '20'
       - run: npm ci
       - run: npm test
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: SSH and deploy
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT }}
-          script: |
-            set -e
-            cd "${{ secrets.DEPLOY_PATH }}"
-            git fetch origin
-            git reset --hard origin/main
-            npm ci --omit=dev
-            pm2 restart dvc || pm2 start app.js --name dvc
