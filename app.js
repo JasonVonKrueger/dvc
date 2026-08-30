@@ -9,8 +9,37 @@ const store = require('./lib/store')
 const express = require('express')
 const path = require('path')
 const app = express()
+app.set('trust proxy', 1) // needed for correct req.ip when running behind Nginx
 app.use('/', express.static(path.join(__dirname, 'public')))
 app.use(express.json())
+
+// Lightweight per-IP rate limiter to blunt brute-force game-code guessing and
+// unauthenticated create/join spam. Single-process/in-memory - fine since this
+// app runs as one pm2 process, not a fleet.
+const rateLimitBuckets = new Map()
+setInterval(function () {
+    const cutoff = Date.now() - 5 * 60 * 1000
+    rateLimitBuckets.forEach(function (bucket, key) {
+        if (bucket.start < cutoff) rateLimitBuckets.delete(key)
+    })
+}, 5 * 60 * 1000).unref()
+
+function rateLimit(max, windowMs) {
+    return function (req, res, next) {
+        const key = req.ip
+        const now = Date.now()
+        let bucket = rateLimitBuckets.get(key)
+        if (!bucket || now - bucket.start > windowMs) {
+            bucket = { start: now, count: 0 }
+            rateLimitBuckets.set(key, bucket)
+        }
+        bucket.count++
+        if (bucket.count > max) {
+            return res.status(429).send({ errMsg: 'Too many requests, please slow down.' })
+        }
+        next()
+    }
+}
 
 // Active SSE subscribers by gameID -> Set<Response>
 const sseSubscribers = new Map()
@@ -61,25 +90,36 @@ const server = app.listen(config.devserver.port || 9115, function() {
     console.log(`DVC app listening on port ${config.devserver.port}`)
 })
 
-app.get('/create/:gameType', function(req, res) {
+app.get('/create/:gameType', rateLimit(20, 60000), function(req, res) {
     let game = createGame(req.params.gameType, req.query.playerName)
     res.send(game)
 })
 
-app.get('/join/:gameID/:playerNumber', function(req, res) {
+app.get('/join/:gameID/:playerNumber', rateLimit(30, 60000), function(req, res) {
     let game = joinGame(req.params.gameID, req.params.playerNumber)
     res.send(game)
 })
 
-app.get('/listgames', function(req, res) {
-    res.send(GAMES) 
+// Debug/admin endpoints leak every game ID ever created, which defeats the
+// "only people with the code can join" model - require a shared admin token.
+// Unset ADMIN_TOKEN disables these routes entirely (fail closed).
+function requireAdmin(req, res, next) {
+    const token = process.env.ADMIN_TOKEN
+    if (!token || req.get('x-admin-token') !== token) {
+        return res.status(404).end()
+    }
+    next()
+}
+
+app.get('/listgames', requireAdmin, function(req, res) {
+    res.send(GAMES)
 })
 
-app.get('/history/games', function(req, res) {
+app.get('/history/games', requireAdmin, function(req, res) {
     res.send(store.listGames(Number(req.query.limit) || 50))
 })
 
-app.get('/history/games/:gameID', function(req, res) {
+app.get('/history/games/:gameID', requireAdmin, function(req, res) {
     let record = store.getGame(req.params.gameID)
 
     if (!record) {
