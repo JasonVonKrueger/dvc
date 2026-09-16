@@ -222,8 +222,9 @@ function initEventListeners() {
     })
 
     /* --------------------------------------------------------- */
-    // hold the spin control (only visible while zoomed in) to double the
-    // board's rotation speed; release to return to normal. Changing
+    // hold the spin control (only visible while zoomed in) to spin the
+    // board at ~3s per rotation (600x normal speed -- normal is 1 rotation
+    // per 1800s, so 1800/3 = 600); release to return to normal. Changing
     // folRotationSpeedMultiplier just changes the rate folRotationTick
     // advances the angle by going forward -- no jump, since the angle
     // itself is never touched here.
@@ -232,7 +233,7 @@ function initEventListeners() {
 
         function spinFast(e) {
             e.preventDefault()
-            folRotationSpeedMultiplier = 2
+            folRotationSpeedMultiplier = 600
         }
 
         function spinNormal() {
