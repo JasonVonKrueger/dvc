@@ -1,6 +1,14 @@
 // Server-Sent Events (SSE) manager for Da Vinci's Challenge
 let eventSource = null
 
+// event ids only ever increase (server-side auto-increment), so this
+// survives a reconnect to a different game fine. On a flaky mobile
+// connection a dropped-then-recovered connection can occasionally deliver
+// the same event twice (once live, once replayed via Last-Event-ID) --
+// this stops it from being processed twice (e.g. the drop sound playing
+// more than once for a single placed piece).
+let lastProcessedEventId = 0
+
 function connectGameStream(gameID) {
     if (eventSource) {
         eventSource.close()
@@ -18,6 +26,14 @@ function connectGameStream(gameID) {
 
     function processEventData(message) {
         if (!message || message.gameID !== GAME.id) return
+
+        // skip anything we've already handled -- eventId is only absent if
+        // the server's event log failed to record it (e.g. a database
+        // permissions problem), in which case dedup is simply skipped
+        if (typeof message.eventId === 'number') {
+            if (message.eventId <= lastProcessedEventId) return
+            lastProcessedEventId = message.eventId
+        }
 
         switch (message.event) {
             case 'GAME_STARTED':

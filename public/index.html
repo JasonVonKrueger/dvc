@@ -22,26 +22,33 @@
     <link href="resources/css/main.css" rel="stylesheet">
 
     <script>
-        // Load layout content blocks concurrently using modern fetch
-        document.addEventListener('DOMContentLoaded', async () => {
-            const includes = document.querySelectorAll('[data-include]')
-            
-            await Promise.all(Array.from(includes).map(async (el) => {
-                const file = el.getAttribute('data-include')
-                try {
-                    const response = await fetch(file)
-                    if (response.ok) {
-                        const html = await response.text()
-                        el.outerHTML = html
-                    } 
-                    else {
-                        console.error(`Failed to include ${file}: ${response.statusText}`)
+        // Load layout content blocks concurrently using modern fetch.
+        // main.js awaits window.includesLoaded before wiring up click handlers,
+        // instead of guessing at a fixed delay -- the buttons these fragments
+        // contain don't exist in the DOM until their fetch resolves.
+        window.includesLoaded = new Promise((resolve) => {
+            document.addEventListener('DOMContentLoaded', async () => {
+                const includes = document.querySelectorAll('[data-include]')
+
+                await Promise.all(Array.from(includes).map(async (el) => {
+                    const file = el.getAttribute('data-include')
+                    try {
+                        const response = await fetch(file)
+                        if (response.ok) {
+                            const html = await response.text()
+                            el.outerHTML = html
+                        }
+                        else {
+                            console.error(`Failed to include ${file}: ${response.statusText}`)
+                        }
                     }
-                } 
-                catch (err) {
-                    console.error(`Error loading include ${file}:`, err)
-                }
-            }))
+                    catch (err) {
+                        console.error(`Error loading include ${file}:`, err)
+                    }
+                }))
+
+                resolve()
+            })
         })
     </script>
 </head>

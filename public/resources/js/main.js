@@ -25,23 +25,22 @@ let pendingScoreHighlights = []
 // ****************************************************************
 // Game entry point
 // *****************************************************************
-window.addEventListener("load", function () {
-    loadPlayerName().then(function (name) {
-        GAME.myPlayerName = name
-    })
+loadPlayerName().then(function (name) {
+    GAME.myPlayerName = name
+})
 
-    // a shared "Play a Friend" link looks like /?join=X7K9P
-    const joinCode = new URLSearchParams(window.location.search).get('join')
+// a shared "Play a Friend" link looks like /?join=X7K9P
+const joinCode = new URLSearchParams(window.location.search).get('join')
+
+// wait for the actual data-include fragments (splash screen, modals, board
+// SVG) to finish loading rather than guessing at a fixed delay -- on a slow
+// mobile connection a fixed delay can expire before the buttons even exist
+// in the DOM yet, which is why a first tap can appear to do nothing
+window.includesLoaded.then(function () {
+    initEventListeners()
 
     if (joinCode) {
-        window.setTimeout(function () {
-            initEventListeners()
-            joinAsGuest(joinCode.toUpperCase())
-        }, 500)
-    } else {
-        window.setTimeout(function () {
-            initEventListeners()
-        }, 3000)
+        joinAsGuest(joinCode.toUpperCase())
     }
 })
 
