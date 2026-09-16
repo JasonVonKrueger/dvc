@@ -31,7 +31,6 @@ let pendingScoreHighlights = []
 // spin-fast control change speed with zero jump: whatever angle we're at
 // when the rate changes is exactly where the next frame continues from.
 const FOL_DEGREES_PER_MS = 360 / (1800 * 1000) // one turn per 1800s, matching the old CSS animation
-let folRotationEnabled = true
 let folRotationAngle = 0
 let folRotationSpeedMultiplier = 1
 let folRotationLastFrameTime = null
@@ -44,12 +43,10 @@ function folRotationTick(timestamp) {
     const elapsedMs = timestamp - folRotationLastFrameTime
     folRotationLastFrameTime = timestamp
 
-    if (folRotationEnabled) {
-        folRotationAngle = (folRotationAngle + elapsedMs * FOL_DEGREES_PER_MS * folRotationSpeedMultiplier) % 360
-        const svg = $('#svg7243')
-        if (svg) {
-            svg.style.transform = 'rotate(' + folRotationAngle + 'deg)'
-        }
+    folRotationAngle = (folRotationAngle + elapsedMs * FOL_DEGREES_PER_MS * folRotationSpeedMultiplier) % 360
+    const svg = $('#svg7243')
+    if (svg) {
+        svg.style.transform = 'rotate(' + folRotationAngle + 'deg)'
     }
 
     requestAnimationFrame(folRotationTick)
@@ -439,7 +436,6 @@ function initBoard() {
 
     loadGamePieces()
     updatePlayerLocks()
-    toggleRotateFol()
 }
 
 // ****************************************************************
@@ -774,18 +770,6 @@ function toggleSNDEffects() {
     sndDroppingPieces.mute(isMuted)
     sndPickPiece.mute(isMuted)
     sndSymbolFormed.mute(isMuted)
-}
-
-// ****************************************************************
-// off by default -- syncs the paused/spinning state to the checkbox;
-// called both on click and once at board init to apply the current setting
-function isRotateFolEnabled() {
-    const chk = $('#chk-rotate-fol')
-    return chk ? chk.checked : false
-}
-
-function toggleRotateFol() {
-    folRotationEnabled = isRotateFolEnabled()
 }
 
 // ****************************************************************
