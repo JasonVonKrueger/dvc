@@ -76,6 +76,13 @@ button:hover {
     width: 100%;
     margin-left: auto;
     margin-right: auto;
+    /* faded / washed-out look across the whole in-game view (board, header,
+       cups) -- doesn't touch the splash screen or modals, which live outside
+       this container. Saturation only: brightness/contrast tweaks were
+       lifting dark shadow detail out of the board's decorative texture
+       (visible through slots that are transparent until played), making an
+       otherwise-empty board look like a messy patchwork instead of faded. */
+    filter: saturate(.75);
 }
 
 #splash-screen {
@@ -167,42 +174,36 @@ button:hover {
     animation: splash-rise .8s .16s ease-out both;
 }
 
+/* one consistent look for every button -- this is a touch/mobile app, so
+   there's no :hover state to differentiate a "primary" action with; every
+   button already reads as tappable on its own */
 .menu-action {
     display: grid;
     grid-template-columns: 1fr 22px;
     align-items: center;
-    width: 100%;
+    width: 75%;
+    margin-left: auto;
+    margin-right: auto;
     min-height: 58px;
     padding: 0 18px;
-    border: 1px solid rgba(232, 225, 213, .28);
+    border: 1px solid rgba(218, 105, 73, .9);
     border-radius: 3px;
     box-shadow: 0 10px 20px rgba(0, 0, 0, .24);
-    background: rgba(20, 22, 22, .66);
+    background: linear-gradient(100deg, rgba(133, 27, 24, .94), rgba(83, 22, 22, .82));
     color: #f5eee4;
     font-family: var(--font-main);
     font-size: clamp(.82rem, 2vw, 1rem);
     letter-spacing: .08em;
     text-align: left;
     text-transform: uppercase;
-    transition: background-color .2s ease, border-color .2s ease, transform .2s ease;
 }
 
-.menu-action-primary {
-    border-color: rgba(218, 105, 73, .9);
-    background: linear-gradient(100deg, rgba(133, 27, 24, .94), rgba(83, 22, 22, .82));
-}
-
-.menu-action-quiet {
-    background: rgba(15, 17, 17, .42);
-    color: rgba(245, 238, 228, .76);
-}
-
-.menu-action:hover,
-.menu-action:focus-visible {
-    border-color: #e0b27b;
-    background-color: rgba(123, 35, 28, .86);
-    outline: none;
-    transform: translateX(5px);
+/* inside a modal, buttons shouldn't stretch edge-to-edge of the (wide)
+   modal-content box -- cap them like the splash screen's own buttons
+   already are (there, #action-icon-container does the capping); centering
+   comes from the base .menu-action rule above */
+.modal-content .menu-action {
+    width: min(240px, 100%);
 }
 
 .menu-action-index {
@@ -322,6 +323,11 @@ svg {
     animation-timing-function: linear;
 }
 
+/* Rotate Flower of Life option, off by default -- freeze the spin in place */
+#fol-container.fol-no-rotate svg {
+    animation-play-state: paused;
+}
+
 .slot-taken:hover {
     cursor: url('../images/arrow-cursor.svg'), auto;
 }
@@ -371,6 +377,23 @@ svg {
     100% {
         filter: brightness(1);
         stroke-width: 21.9435;
+    }
+}
+
+/* quick one-shot acknowledgement flash for direct-placement taps */
+.slot-touch-flash {
+    animation: slot-touch-flash-anim .35s ease-out;
+}
+
+@keyframes slot-touch-flash-anim {
+    0% {
+        filter: brightness(1);
+    }
+    30% {
+        filter: brightness(2.6) saturate(0);
+    }
+    100% {
+        filter: brightness(1);
     }
 }
 
@@ -536,7 +559,10 @@ svg {
     display: none;
 }
 
-.game-over-content {
+/* higher specificity than the shared .modal-content rule (declared later in
+   this file) so this modal's own sizing reliably wins the cascade tie */
+#game-over-modal .game-over-content {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -550,27 +576,86 @@ svg {
     overflow: hidden;
 }
 
+/* explosive sunburst that zooms/spins in behind the winner announcement */
+#game-over-modal .game-over-content::before,
+#game-over-modal .game-over-content::after {
+    content: '';
+    position: absolute;
+    inset: -60%;
+    z-index: 0;
+    background: repeating-conic-gradient(
+        from 0deg,
+        #f5efe4 0deg 4deg,
+        #851b18 4deg 8deg,
+        #111111 8deg 10deg,
+        #f5efe4 10deg 14deg
+    );
+    pointer-events: none;
+}
+
+#game-over-modal .game-over-content::before {
+    opacity: 0;
+    animation: game-over-burst-in .7s cubic-bezier(.16, 1, .3, 1) forwards;
+}
+
+#game-over-modal .game-over-content::after {
+    opacity: 0;
+    animation: game-over-burst-in .7s cubic-bezier(.16, 1, .3, 1) forwards,
+               game-over-burst-spin 140s linear infinite;
+    animation-delay: 0s, .7s;
+}
+
+@keyframes game-over-burst-in {
+    0% { transform: scale(0) rotate(0deg); opacity: 0; }
+    70% { opacity: .5; }
+    100% { transform: scale(1) rotate(24deg); opacity: .4; }
+}
+
+@keyframes game-over-burst-spin {
+    from { transform: scale(1) rotate(24deg); }
+    to { transform: scale(1) rotate(384deg); }
+}
+
 .game-over-title {
-    font-size: clamp(3.5rem, 9vw, 5.5rem);
+    position: relative;
+    z-index: 1;
+    font-size: clamp(1rem, 2.6vw, 1.3rem);
     font-family: var(--font-modal);
     margin: 0;
-    color: #851b18;
+    color: #444;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.25);
+    letter-spacing: 0.3em;
 }
 
 .game-over-winner {
-    font-size: clamp(1.8rem, 4.5vw, 2.8rem);
+    position: relative;
+    z-index: 1;
+    font-size: clamp(2.8rem, 10vw, 5rem);
+    line-height: 1.05;
     font-family: var(--font-modal);
-    margin: 16px 0 0 0;
-    color: #222;
-    letter-spacing: 0.04em;
+    font-weight: bold;
+    margin: 6px 0 0 0;
+    color: #111;
+    letter-spacing: 0.02em;
+    text-shadow: 0 0 4px #fff, 0 0 14px #fff, 2px 2px 0 rgba(0, 0, 0, .15);
+    text-transform: uppercase;
+    opacity: 0;
+    transform: scale(.5);
+    animation: game-over-winner-pop .6s .35s cubic-bezier(.34, 1.56, .64, 1) forwards;
+}
+
+@keyframes game-over-winner-pop {
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .game-over-btn {
+    position: relative;
+    z-index: 1;
     margin-top: 32px;
-    width: min(320px, 100%);
+    width: min(240px, 100%);
     cursor: pointer;
 }
 
@@ -637,15 +722,10 @@ svg {
 }
 
 .point-values-options-row .menu-action {
-    width: min(240px, 100%);
+    width: min(180px, 100%);
     min-height: 40px;
     padding: 0 14px;
     font-size: clamp(.7rem, 1.6vw, .82rem);
-}
-
-#point-values-modal .modal-content {
-    width: calc(90% * 0.8 * 1.1);
-    height: calc(80% * 1.25);
 }
 
 .modal-zoom-in {
@@ -735,6 +815,65 @@ svg {
     background-color: pink;
     border-color: red;
   }
+
+/*******************************************************************/
+/* pattern-formed callout ("Triangle +1" medallion) */
+#pattern-callout-container {
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    pointer-events: none;
+}
+
+.pattern-callout-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 140px;
+    padding: 20px 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #f6dfa8, #d6a56d 55%, #85631f 100%);
+    box-shadow: 0 0 0 4px rgba(255, 245, 220, .5), 0 10px 30px rgba(0, 0, 0, .55);
+    opacity: 0;
+    transform: scale(.4);
+    transition: opacity .35s ease, transform .35s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+.pattern-callout-badge.pattern-callout-show {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.pattern-callout-badge.pattern-callout-hide {
+    opacity: 0;
+    transform: scale(.7) translateY(-14px);
+    transition: opacity .35s ease, transform .35s ease;
+}
+
+.pattern-callout-icon {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .45));
+}
+
+.pattern-callout-label {
+    font-family: var(--font-modal);
+    font-size: 1.3rem;
+    color: #2b1c12;
+    text-align: center;
+    letter-spacing: .02em;
+}
+
+.pattern-callout-points {
+    font-family: var(--font-modal);
+    font-size: 1.15rem;
+    font-weight: bold;
+    color: #851b18;
+}
 
 /*******************************************************************/
 /* show the device message to rotate phone */

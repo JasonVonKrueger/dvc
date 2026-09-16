@@ -210,8 +210,9 @@ function joinGame(gameID, playerNumber) {
             }
         }
 
-        // a friend match is ready once both human players have joined
-        if (currentGame.type === '(friend)' && currentGame.playerOne.joined && currentGame.playerTwo.joined) {
+        // a friend match (remote) or a local pass-and-play match (same device,
+        // both players joined back-to-back) is ready once both have joined
+        if ((currentGame.type === '(friend)' || currentGame.type === '(local)') && currentGame.playerOne.joined && currentGame.playerTwo.joined) {
             currentGame.status = 'ready'
         }
 
@@ -219,7 +220,9 @@ function joinGame(gameID, playerNumber) {
 
         let playerName = (playerNumber == 2) ? currentGame.playerTwo.name : currentGame.playerOne.name
 
-        if (playerNumber == 2) {
+        // skip the "player joined" toast for local play -- it's the same
+        // device joining as both players back-to-back, so it'd just be noise
+        if (playerNumber == 2 && currentGame.type !== '(local)') {
             publishGameEvent(gameID, 'PLAYER_JOINED', { playerNumber: 2, playerName: playerName })
         }
 

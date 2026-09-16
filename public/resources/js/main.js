@@ -73,6 +73,12 @@ function initEventListeners() {
     })
 
     /* --------------------------------------------------------- */
+    // local "pass and play" -- one device, both players take turns
+    $('#iconLocalPlayer').addEventListener('click', function(e) {
+        createGame('(local)')
+    })
+
+    /* --------------------------------------------------------- */
     $('#btnGetGameCode').addEventListener('click', async function(e) {
         e.preventDefault()
         await createGame('(friend)')
@@ -164,15 +170,23 @@ function initEventListeners() {
     $('#fol-container').addEventListener('click', function(e) {
         //e.preventDefault()
         let slot = document.getElementById(e.target.id)
-       
+        if (!slot) return
+
+        // direct placement: no piece pre-selected from the cup -- tapping the
+        // slot both picks and places a matching piece from the current cup
+        if (isDirectPlacementEnabled()) {
+            placeDirectlyOnSlot(slot)
+            return
+        }
+
         // get object array index from selected piece
         let index = slot.id.match(/\d+/)
-    
+
         // handle moves
         if (GAME.moveStarted) {
             if (!slot.classList.contains('slot-taken')) {
                 if ((slot.id.indexOf('oval') > -1 && GAME.activeGamePiece.id.includes('Oval')) || (slot.id.indexOf('triangle') > -1 && GAME.activeGamePiece.id.includes('Triangle'))) {
-                    postData('/do', { event: 'MOVE_COMPLETE', gameID: GAME.id, 'gameID': GAME.id, 'currentPlayer': GAME.currentPlayer, 'slotID': slot.id })    
+                    postData('/do', { event: 'MOVE_COMPLETE', gameID: GAME.id, 'gameID': GAME.id, 'currentPlayer': GAME.currentPlayer, 'slotID': slot.id })
                     document.getElementById(GAME.activeGamePiece.id).remove()
                 }
             }
@@ -256,6 +270,11 @@ async function createGame(type) {
     if (type === '(friend)') {
         await joinGame(1) // mark the host as joined
     }
+
+    if (type === '(local)') {
+        await joinGame(1) // player 1 join
+        joinGame(2) // player 2 join, same device
+    }
 }
 
 // ****************************************************************
@@ -275,6 +294,13 @@ async function joinGame(playerNumber) {
 
     if (playerNumber == GAME.myPlayerNumber) {
         GAME.myPlayerName = data.playerName
+    }
+
+    // local pass-and-play controls both players from one device -- remember
+    // both names so turn-change prompts can address whoever's up next
+    if (GAME.type === '(local)') {
+        if (playerNumber === 1) GAME.playerOneName = data.playerName
+        if (playerNumber === 2) GAME.playerTwoName = data.playerName
     }
 
     if (data.gameStatus === 'ready') {
@@ -360,12 +386,14 @@ function initBoard() {
 
     loadGamePieces()
     updatePlayerLocks()
+    updateDirectPlacementLock()
+    toggleRotateFol()
 }
 
 // ****************************************************************
 // in 2-player mode, restrict each player to their own cups and turn
 function updatePlayerLocks() {
-    if (GAME.type !== '(friend)') return
+    if (GAME.type !== '(friend)' && GAME.type !== '(local)') return
 
     const isMyTurn = (GAME.currentPlayer == GAME.myPlayerNumber)
 
@@ -427,9 +455,12 @@ function loadGamePieces() {
 function stageGamePiece() {
     if (GAME.currentPlayer == GAME.myPlayerNumber) {
         $('#fol-container').classList.remove('no-pointer-events')
-        $('#fol-container').classList.remove('fol-zoom-out')
-        $('#fol-container').classList.add('fol-zoom-in') 
-    }  
+
+        if (isAutoZoomEnabled()) {
+            $('#fol-container').classList.remove('fol-zoom-out')
+            $('#fol-container').classList.add('fol-zoom-in')
+        }
+    }
 
     GAME.activeGamePiece = document.getElementById(this.id)
 
@@ -461,7 +492,7 @@ function stageGamePiece() {
 
 // ****************************************************************
 // player scored
-function score(currentPlayer, playerOneScore, playerTwoScore, symbol, slots) {
+function score(currentPlayer, playerOneScore, playerTwoScore, symbol, points, slots) {
     let points_element = null
 
     if (currentPlayer == 1) {
@@ -469,7 +500,7 @@ function score(currentPlayer, playerOneScore, playerTwoScore, symbol, slots) {
 
         //document.getElementById(points_element).innerHTML = parseInt(document.getElementById(points_element).innerHTML) + 1
         $('#player1-score').innerHTML = playerOneScore
-    } 
+    }
     else if (currentPlayer == 2) {
         points_element = 'ss_player2_' + symbol
 
@@ -481,7 +512,70 @@ function score(currentPlayer, playerOneScore, playerTwoScore, symbol, slots) {
         pendingScoreHighlights.push(slots)
     }
 
-    //sndSymbolFormed.play(false)
+    queuePatternCallout(symbol, points)
+}
+
+// ****************************************************************
+// "Triangle +1" style medallion callout shown when a pattern completes.
+// Patterns are shown one at a time (queued) so a single move that completes
+// more than one symbol at once doesn't stack illegible overlapping badges.
+const PATTERN_CALLOUT_INFO = {
+    triangle:  { label: 'Triangle',  icon: 'ss-1.png' },
+    diamond:   { label: 'Diamond',   icon: 'ss-2.png' },
+    gem:       { label: 'Jewel',     icon: 'ss-3.png' },
+    eye:       { label: 'Eye',       icon: 'ss-4.png' },
+    pyramid:   { label: 'Pyramid',   icon: 'ss-5.png' },
+    hourglass: { label: 'Hourglass', icon: 'ss-6.png' },
+    star:      { label: 'Star',      icon: 'ss-7.png' },
+    circle:    { label: 'Circle',    icon: 'ss-8.png' },
+    flower:    { label: 'Flower',    icon: 'ss-9.png' }
+}
+
+let patternCalloutQueue = []
+let patternCalloutBusy = false
+
+function queuePatternCallout(symbol, points) {
+    patternCalloutQueue.push({ symbol: symbol, points: points })
+    processPatternCalloutQueue()
+}
+
+function processPatternCalloutQueue() {
+    if (patternCalloutBusy || patternCalloutQueue.length === 0) return
+
+    patternCalloutBusy = true
+
+    const next = patternCalloutQueue.shift()
+    const info = PATTERN_CALLOUT_INFO[next.symbol] || { label: next.symbol, icon: 'ss-1.png' }
+
+    let container = $('#pattern-callout-container')
+    if (!container) {
+        container = document.createElement('div')
+        container.id = 'pattern-callout-container'
+        document.body.appendChild(container)
+    }
+
+    const badge = document.createElement('div')
+    badge.className = 'pattern-callout-badge'
+    badge.innerHTML =
+        '<img class="pattern-callout-icon" src="resources/images/' + info.icon + '" alt="" />' +
+        '<div class="pattern-callout-label">' + info.label + '</div>' +
+        '<div class="pattern-callout-points">+' + next.points + '</div>'
+
+    container.appendChild(badge)
+    sndSymbolFormed.play()
+
+    requestAnimationFrame(function () {
+        badge.classList.add('pattern-callout-show')
+    })
+
+    setTimeout(function () {
+        badge.classList.add('pattern-callout-hide')
+        setTimeout(function () {
+            badge.remove()
+            patternCalloutBusy = false
+            processPatternCalloutQueue()
+        }, 350)
+    }, 1400)
 }
 
 function highlightScoredPatterns() {
@@ -507,14 +601,14 @@ function closeModal(element) {
 // ****************************************************************
 // update game board by filling in slot
 function updateBoard(currentPlayer, slotID, availableSlots) {
-    // fill the slots    
+    // fill the slots
     if (!document.getElementById(slotID).classList.contains('slot-taken')) {
 
         if (currentPlayer === 1) {
-            document.getElementById(slotID).style = 'fill:#eeeeee;fill-opacity:1;stroke:#000000;stroke-width:21.9435;stroke-miterlimit:2;stroke-opacity:0.840741';
-        } 
+            document.getElementById(slotID).style = 'fill:url(#marbleWhiteFill);stroke:#000000;stroke-width:21.9435;stroke-miterlimit:2;stroke-opacity:0.840741';
+        }
         else if (currentPlayer === 2) {
-            document.getElementById(slotID).style = 'fill:#060606;fill-opacity:1;stroke:#ffba8b;stroke-width:21.9435;stroke-miterlimit:2;stroke-opacity:0.840741';
+            document.getElementById(slotID).style = 'fill:url(#marbleBlackFill);stroke:#ffba8b;stroke-width:21.9435;stroke-miterlimit:2;stroke-opacity:0.840741';
         }
 
         document.getElementById(slotID).classList.add('slot-taken')
@@ -584,11 +678,11 @@ function showGameOver() {
 
     let winnerText = ''
     if (p1Score > p2Score) {
-        winnerText = 'Player 1 wins the game!'
+        winnerText = 'Player 1 Wins!'
     } else if (p2Score > p1Score) {
-        winnerText = 'Player 2 wins the game!'
+        winnerText = 'Player 2 Wins!'
     } else {
-        winnerText = "It's a tie!"
+        winnerText = "It's a Tie!"
     }
 
     const winnerEl = $('#game-over-winner')
@@ -626,22 +720,107 @@ function toggleSNDEffects() {
 }
 
 // ****************************************************************
+// off by default -- read live off the checkbox rather than cached state,
+// same as the other option toggles
+function isAutoZoomEnabled() {
+    const chk = $('#chk-autozoom-fol')
+    return chk ? chk.checked : false
+}
+
+function toggleAutoZoom() {
+    // if turned off mid-zoom, snap the board back to normal size right away
+    // instead of leaving it stuck zoomed in until the next move
+    if (!isAutoZoomEnabled()) {
+        $('#fol-container').classList.remove('fol-zoom-in')
+        $('#fol-container').classList.add('fol-zoom-out')
+    }
+}
+
+// ****************************************************************
+// off by default -- syncs the paused/spinning state to the checkbox;
+// called both on click and once at board init to apply the current setting
+function isRotateFolEnabled() {
+    const chk = $('#chk-rotate-fol')
+    return chk ? chk.checked : false
+}
+
+function toggleRotateFol() {
+    $('#fol-container').classList.toggle('fol-no-rotate', !isRotateFolEnabled())
+}
+
+// ****************************************************************
+// on by default -- when enabled, tapping a slot both picks and places a
+// matching piece from the current player's cup, skipping the manual
+// select-a-piece-first step
+function isDirectPlacementEnabled() {
+    const chk = $('#chk-direct-placement')
+    return chk ? chk.checked : true
+}
+
+// ****************************************************************
+// in manual mode, selecting a cup piece is what unlocks the board
+// (see stageGamePiece). Direct placement skips that step entirely, so the
+// board's own lock has to be driven straight off whose turn it is instead --
+// otherwise solo/friend/local games would never unlock it for the next turn.
+function updateDirectPlacementLock() {
+    if (!isDirectPlacementEnabled()) return
+
+    if (GAME.currentPlayer == GAME.myPlayerNumber) {
+        $('#fol-container').classList.remove('no-pointer-events')
+    } else {
+        $('#fol-container').classList.add('no-pointer-events')
+    }
+}
+
+async function placeDirectlyOnSlot(slot) {
+    if (!GAME.id || slot.classList.contains('slot-taken')) return
+
+    const isOval = slot.id.indexOf('oval') > -1
+    const pieceType = isOval ? 'Oval' : 'Triangle'
+
+    // a piece can still be manually staged first (cup pieces keep their own
+    // click handler regardless of this setting) -- reuse it if it matches so
+    // it doesn't get left behind, selected, in the cup
+    let piece = (GAME.activeGamePiece && GAME.activeGamePiece.id.includes(pieceType) && document.body.contains(GAME.activeGamePiece))
+        ? GAME.activeGamePiece
+        : null
+
+    if (!piece) {
+        const cupSelector = (GAME.currentPlayer === 1)
+            ? (isOval ? '#p1-oval-cup' : '#p1-triangle-cup')
+            : (isOval ? '#p2-oval-cup' : '#p2-triangle-cup')
+        piece = document.querySelector(cupSelector + ' .game-piece')
+    }
+
+    if (!piece) return // no matching pieces left in this player's cup
+
+    // immediate touch feedback -- doesn't wait on the server round trip
+    slot.classList.remove('slot-touch-flash')
+    void slot.offsetWidth
+    slot.classList.add('slot-touch-flash')
+    sndPickPiece.play()
+
+    GAME.activeGamePiece = piece
+    piece.remove()
+
+    await postData('/do', { event: 'MOVE_STARTED', currentPlayer: GAME.currentPlayer, gameID: GAME.id })
+    postData('/do', { event: 'MOVE_COMPLETE', gameID: GAME.id, currentPlayer: GAME.currentPlayer, slotID: slot.id })
+}
+
+// ****************************************************************
 function showToast(str, addClass) {
     let duration = Math.max(MIN_DUR, str.length * 80)
 
     if (!toastContain) {
         toastContain = document.createElement('div')
         toastContain.classList.add('toast-container')
-
-        if (GAME.myPlayerNumber == 2) {
-            toastContain.classList.add('toast-container-p2')
-        }
-        else {
-            toastContain.classList.add('toast-container-p1')
-        }
-
         document.body.appendChild(toastContain)
     }
+
+    // in local pass-and-play the active side changes every turn, so
+    // re-check placement on every toast instead of only at creation
+    toastContain.classList.remove('toast-container-p1', 'toast-container-p2')
+    toastContain.classList.add(GAME.myPlayerNumber == 2 ? 'toast-container-p2' : 'toast-container-p1')
 
     const el = document.createElement('div')
     el.classList.add('toast', addClass)

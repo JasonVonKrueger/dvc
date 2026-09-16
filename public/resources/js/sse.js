@@ -22,7 +22,11 @@ function connectGameStream(gameID) {
         switch (message.event) {
             case 'GAME_STARTED':
                 initBoard()
-                showToast('You are ' + (GAME.myPlayerName || 'player ' + GAME.myPlayerNumber))
+                if (GAME.type === '(local)') {
+                    showToast((GAME.playerOneName || 'Player 1') + ' goes first!')
+                } else {
+                    showToast('You are ' + (GAME.myPlayerName || 'player ' + GAME.myPlayerNumber))
+                }
                 savePlayerName(GAME.myPlayerName)
                 break
             case 'MOVE_STARTED':
@@ -32,17 +36,26 @@ function connectGameStream(gameID) {
             case 'MOVE_COMPLETE':
                 updateBoard(message.currentPlayer, message.slotID, message.availableSlots)
                 highlightScoredPatterns()
-                if (GAME.currentPlayer == GAME.myPlayerNumber) {
+                if (GAME.currentPlayer == GAME.myPlayerNumber && isAutoZoomEnabled()) {
                     setTimeout(function () {
-                        $('#fol-container').classList.remove('fol-zoom-in') 
-                        $('#fol-container').classList.add('fol-zoom-out') 
+                        $('#fol-container').classList.remove('fol-zoom-in')
+                        $('#fol-container').classList.add('fol-zoom-out')
                     }, 300)
                 }
                 GAME.moveStarted = false
                 break
             case 'SWITCH_PLAYER':
                 GAME.currentPlayer = message.currentPlayer
+
+                // local pass-and-play: this one device speaks for whoever's turn it is
+                if (GAME.type === '(local)') {
+                    GAME.myPlayerNumber = message.currentPlayer
+                    const upNextName = message.currentPlayer === 1 ? GAME.playerOneName : GAME.playerTwoName
+                    showToast('Pass the device to ' + (upNextName || ('Player ' + message.currentPlayer)))
+                }
+
                 updatePlayerLocks()
+                updateDirectPlacementLock()
 
                 // is player 2 a bot? (solo mode only)
                 if (message.currentPlayer == 2 && GAME.type === '(solo)') {
@@ -73,7 +86,7 @@ function connectGameStream(gameID) {
                 showToast((message.playerName || 'Player 2') + ' joined the game!')
                 break
             case 'SCORE':
-                score(message.currentPlayer, message.playerOneScore, message.playerTwoScore, message.symbol, message.slots)
+                score(message.currentPlayer, message.playerOneScore, message.playerTwoScore, message.symbol, message.points, message.slots)
                 break
         }
     }

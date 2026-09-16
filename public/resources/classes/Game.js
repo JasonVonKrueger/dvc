@@ -10,6 +10,8 @@ class Game {
     this.currentPlayer = 1
     this.myPlayerNumber = 1
     this.myPlayerName = null
+    this.playerOneName = null
+    this.playerTwoName = null
     this.available_slots = []
     
     // this.playerOne = new Player(1)
