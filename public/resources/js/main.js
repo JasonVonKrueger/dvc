@@ -550,7 +550,7 @@ function processPatternCalloutQueue() {
     if (!container) {
         container = document.createElement('div')
         container.id = 'pattern-callout-container'
-        document.body.appendChild(container)
+        $('#phone-frame').appendChild(container)
     }
 
     const badge = document.createElement('div')
@@ -813,7 +813,7 @@ function showToast(str, addClass) {
     if (!toastContain) {
         toastContain = document.createElement('div')
         toastContain.classList.add('toast-container')
-        document.body.appendChild(toastContain)
+        $('#phone-frame').appendChild(toastContain)
     }
 
     // in local pass-and-play the active side changes every turn, so

@@ -55,6 +55,13 @@
 
 <body>
 
+    <!-- Everything visible lives inside this frame. On an actual phone it just
+         fills the real viewport (unchanged behavior). On a desktop/tablet-sized
+         screen, main.css constrains it to a centered, phone-shaped box and gives
+         it a transform so position:fixed descendants (header, modals, toasts)
+         size themselves against IT instead of the real browser window. -->
+    <div id="phone-frame">
+
     <div id="top-container">
 
         <!-- header container -->
@@ -141,6 +148,8 @@
     <div id="device-message">
         <img src="resources/images/phone512.png" class="modal-rotate-phone" />
     </div>
+
+    </div> <!-- #phone-frame -->
 
     <script src="resources/classes/Game.js"></script>
     <script src="resources/classes/GamePiece.js"></script>
