@@ -23,6 +23,39 @@ let toastContain = null
 let pendingScoreHighlights = []
 
 // ****************************************************************
+// Flower of Life rotation, driven from JS rather than a CSS animation.
+// A CSS animation's progress is elapsedTime/duration -- changing duration
+// mid-flight leaves elapsedTime alone but changes the divisor, so progress
+// (and the rendered angle) jumps discontinuously. Tracking the angle
+// ourselves and advancing it by (time * degreesPerMs) every frame lets the
+// spin-fast control change speed with zero jump: whatever angle we're at
+// when the rate changes is exactly where the next frame continues from.
+const FOL_DEGREES_PER_MS = 360 / (1800 * 1000) // one turn per 1800s, matching the old CSS animation
+let folRotationEnabled = true
+let folRotationAngle = 0
+let folRotationSpeedMultiplier = 1
+let folRotationLastFrameTime = null
+
+function folRotationTick(timestamp) {
+    if (folRotationLastFrameTime === null) {
+        folRotationLastFrameTime = timestamp
+    }
+
+    const elapsedMs = timestamp - folRotationLastFrameTime
+    folRotationLastFrameTime = timestamp
+
+    if (folRotationEnabled) {
+        folRotationAngle = (folRotationAngle + elapsedMs * FOL_DEGREES_PER_MS * folRotationSpeedMultiplier) % 360
+        const svg = $('#svg7243')
+        if (svg) {
+            svg.style.transform = 'rotate(' + folRotationAngle + 'deg)'
+        }
+    }
+
+    requestAnimationFrame(folRotationTick)
+}
+
+// ****************************************************************
 // Game entry point
 // *****************************************************************
 loadPlayerName().then(function (name) {
@@ -51,6 +84,10 @@ window.includesLoaded.then(function () {
 // ****************************************************************
 // event handlers
 function initEventListeners() {
+
+    // #svg7243 exists by now (it's one of the data-include fragments
+    // window.includesLoaded already waited on)
+    requestAnimationFrame(folRotationTick)
 
     /* --------------------------------------------------------- */
     // add mousedown listener for buttons
@@ -186,18 +223,20 @@ function initEventListeners() {
 
     /* --------------------------------------------------------- */
     // hold the spin control (only visible while zoomed in) to double the
-    // board's rotation speed; release to return to normal
+    // board's rotation speed; release to return to normal. Changing
+    // folRotationSpeedMultiplier just changes the rate folRotationTick
+    // advances the angle by going forward -- no jump, since the angle
+    // itself is never touched here.
     ;(function () {
         const spinBtn = $('#btn-spin-fol')
-        const svg = $('#svg7243')
 
         function spinFast(e) {
             e.preventDefault()
-            svg.style.animationDuration = '900s'
+            folRotationSpeedMultiplier = 2
         }
 
         function spinNormal() {
-            svg.style.animationDuration = ''
+            folRotationSpeedMultiplier = 1
         }
 
         spinBtn.addEventListener('pointerdown', spinFast)
@@ -745,7 +784,7 @@ function isRotateFolEnabled() {
 }
 
 function toggleRotateFol() {
-    $('#fol-container').classList.toggle('fol-no-rotate', !isRotateFolEnabled())
+    folRotationEnabled = isRotateFolEnabled()
 }
 
 // ****************************************************************

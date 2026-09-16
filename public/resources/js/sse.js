@@ -60,7 +60,7 @@ function connectGameStream(gameID) {
                         // belt-and-suspenders: guarantees the fast-spin
                         // speed can't get stuck on if pointerup/pointercancel
                         // never fires (e.g. the button vanished mid-press)
-                        $('#svg7243').style.animationDuration = ''
+                        folRotationSpeedMultiplier = 1
                     }, 300)
                 }
                 GAME.moveStarted = false

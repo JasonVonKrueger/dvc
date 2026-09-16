@@ -325,24 +325,14 @@ button:hover {
 
 svg {
     width: 98%;
-    animation-name: rotate;
-    animation-duration: 1800s;
-    animation-iteration-count: infinite;
-    animation-timing-function: linear;
-}
-
-/* Rotate Flower of Life option, off by default -- freeze the spin in place */
-#fol-container.fol-no-rotate svg {
-    animation-play-state: paused;
+    /* rotation itself is driven from JS (see folRotationTick in main.js) --
+       a CSS animation can't change speed without a discontinuous jump,
+       since progress is elapsedTime/duration and elapsedTime doesn't reset
+       when duration does */
 }
 
 .slot-taken:hover {
     cursor: url('../images/arrow-cursor.svg'), auto;
-}
-
-@keyframes rotate {
-    from { transform: rotate(-360deg); }
-    to { transform: rotate(360deg); }
 }
 
 .fol-zoom-in {
