@@ -52,8 +52,9 @@ function connectGameStream(gameID) {
             case 'MOVE_COMPLETE':
                 updateBoard(message.currentPlayer, message.slotID, message.availableSlots)
                 highlightScoredPatterns()
-                if (GAME.currentPlayer == GAME.myPlayerNumber && isAutoZoomEnabled()) {
+                if (GAME.currentPlayer == GAME.myPlayerNumber) {
                     setTimeout(function () {
+                        resetFolPan()
                         $('#fol-container').classList.remove('fol-zoom-in')
                         $('#fol-container').classList.add('fol-zoom-out')
                     }, 300)
@@ -71,7 +72,6 @@ function connectGameStream(gameID) {
                 }
 
                 updatePlayerLocks()
-                updateDirectPlacementLock()
 
                 // is player 2 a bot? (solo mode only)
                 if (message.currentPlayer == 2 && GAME.type === '(solo)') {

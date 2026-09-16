@@ -22,6 +22,28 @@ let backgroundMusicID = null
 let toastContain = null
 let pendingScoreHighlights = []
 
+// current drag offset of the zoomed-in board, and whether the in-progress
+// pointer interaction has moved far enough to count as a drag rather than a
+// tap (see the fol-container pan handling and click handler in
+// initEventListeners)
+let folPanX = 0
+let folPanY = 0
+let folDragOccurred = false
+
+function setFolPan(x, y, maxX, maxY) {
+    folPanX = Math.max(-maxX, Math.min(maxX, x))
+    folPanY = Math.max(-maxY, Math.min(maxY, y))
+    cssVars.setProperty('--fol-pan-x', folPanX + 'px')
+    cssVars.setProperty('--fol-pan-y', folPanY + 'px')
+}
+
+function resetFolPan() {
+    folPanX = 0
+    folPanY = 0
+    cssVars.setProperty('--fol-pan-x', '0px')
+    cssVars.setProperty('--fol-pan-y', '0px')
+}
+
 // ****************************************************************
 // Game entry point
 // *****************************************************************
@@ -166,17 +188,71 @@ function initEventListeners() {
     })
 
     /* --------------------------------------------------------- */
+    // while zoomed in, let the player drag the board to reach slots that
+    // got pushed out of view -- a small movement threshold tells a
+    // deliberate pan apart from a tap meant to place a piece
+    ;(function () {
+        const fol = $('#fol-container')
+        let dragging = false
+        let startX = 0, startY = 0
+        let originX = 0, originY = 0
+        let maxPanX = 0, maxPanY = 0
+
+        fol.addEventListener('pointerdown', function (e) {
+            if (!fol.classList.contains('fol-zoom-in')) return
+
+            dragging = true
+            folDragOccurred = false
+            startX = e.clientX
+            startY = e.clientY
+            originX = folPanX
+            originY = folPanY
+            // leave enough of the board on-screen to still find your way back
+            maxPanX = fol.clientWidth * 0.4
+            maxPanY = fol.clientHeight * 0.4
+
+            // suppress the CSS transition while actively dragging so the pan
+            // tracks the pointer directly instead of easing toward it
+            fol.style.transitionDuration = '0s'
+            fol.setPointerCapture(e.pointerId)
+        })
+
+        fol.addEventListener('pointermove', function (e) {
+            if (!dragging) return
+
+            const dx = e.clientX - startX
+            const dy = e.clientY - startY
+
+            if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+                folDragOccurred = true
+            }
+
+            setFolPan(originX + dx, originY + dy, maxPanX, maxPanY)
+        })
+
+        function endDrag(e) {
+            if (!dragging) return
+            dragging = false
+            fol.style.transitionDuration = ''
+            if (fol.hasPointerCapture(e.pointerId)) {
+                fol.releasePointerCapture(e.pointerId)
+            }
+        }
+
+        fol.addEventListener('pointerup', endDrag)
+        fol.addEventListener('pointercancel', endDrag)
+    })()
+
+    /* --------------------------------------------------------- */
     $('#fol-container').addEventListener('click', function(e) {
         //e.preventDefault()
-        let slot = document.getElementById(e.target.id)
-        if (!slot) return
-
-        // direct placement: no piece pre-selected from the cup -- tapping the
-        // slot both picks and places a matching piece from the current cup
-        if (isDirectPlacementEnabled()) {
-            placeDirectlyOnSlot(slot)
+        // a drag just happened -- don't also treat its release as a tap
+        if (folDragOccurred) {
+            folDragOccurred = false
             return
         }
+
+        let slot = document.getElementById(e.target.id)
 
         // get object array index from selected piece
         let index = slot.id.match(/\d+/)
@@ -385,7 +461,6 @@ function initBoard() {
 
     loadGamePieces()
     updatePlayerLocks()
-    updateDirectPlacementLock()
     toggleRotateFol()
 }
 
@@ -455,10 +530,15 @@ function stageGamePiece() {
     if (GAME.currentPlayer == GAME.myPlayerNumber) {
         $('#fol-container').classList.remove('no-pointer-events')
 
-        if (isAutoZoomEnabled()) {
+        // deferred the same way the zoom-out swap after MOVE_COMPLETE is --
+        // toggling this in the same tick as the no-pointer-events removal
+        // above (and the piece-selected toggle below) lets the browser
+        // batch them into one style recalc, which can skip the transition
+        setTimeout(function () {
+            resetFolPan()
             $('#fol-container').classList.remove('fol-zoom-out')
             $('#fol-container').classList.add('fol-zoom-in')
-        }
+        }, 0)
     }
 
     GAME.activeGamePiece = document.getElementById(this.id)
@@ -719,23 +799,6 @@ function toggleSNDEffects() {
 }
 
 // ****************************************************************
-// off by default -- read live off the checkbox rather than cached state,
-// same as the other option toggles
-function isAutoZoomEnabled() {
-    const chk = $('#chk-autozoom-fol')
-    return chk ? chk.checked : false
-}
-
-function toggleAutoZoom() {
-    // if turned off mid-zoom, snap the board back to normal size right away
-    // instead of leaving it stuck zoomed in until the next move
-    if (!isAutoZoomEnabled()) {
-        $('#fol-container').classList.remove('fol-zoom-in')
-        $('#fol-container').classList.add('fol-zoom-out')
-    }
-}
-
-// ****************************************************************
 // off by default -- syncs the paused/spinning state to the checkbox;
 // called both on click and once at board init to apply the current setting
 function isRotateFolEnabled() {
@@ -745,65 +808,6 @@ function isRotateFolEnabled() {
 
 function toggleRotateFol() {
     $('#fol-container').classList.toggle('fol-no-rotate', !isRotateFolEnabled())
-}
-
-// ****************************************************************
-// on by default -- when enabled, tapping a slot both picks and places a
-// matching piece from the current player's cup, skipping the manual
-// select-a-piece-first step
-function isDirectPlacementEnabled() {
-    const chk = $('#chk-direct-placement')
-    return chk ? chk.checked : true
-}
-
-// ****************************************************************
-// in manual mode, selecting a cup piece is what unlocks the board
-// (see stageGamePiece). Direct placement skips that step entirely, so the
-// board's own lock has to be driven straight off whose turn it is instead --
-// otherwise solo/friend/local games would never unlock it for the next turn.
-function updateDirectPlacementLock() {
-    if (!isDirectPlacementEnabled()) return
-
-    if (GAME.currentPlayer == GAME.myPlayerNumber) {
-        $('#fol-container').classList.remove('no-pointer-events')
-    } else {
-        $('#fol-container').classList.add('no-pointer-events')
-    }
-}
-
-async function placeDirectlyOnSlot(slot) {
-    if (!GAME.id || slot.classList.contains('slot-taken')) return
-
-    const isOval = slot.id.indexOf('oval') > -1
-    const pieceType = isOval ? 'Oval' : 'Triangle'
-
-    // a piece can still be manually staged first (cup pieces keep their own
-    // click handler regardless of this setting) -- reuse it if it matches so
-    // it doesn't get left behind, selected, in the cup
-    let piece = (GAME.activeGamePiece && GAME.activeGamePiece.id.includes(pieceType) && document.body.contains(GAME.activeGamePiece))
-        ? GAME.activeGamePiece
-        : null
-
-    if (!piece) {
-        const cupSelector = (GAME.currentPlayer === 1)
-            ? (isOval ? '#p1-oval-cup' : '#p1-triangle-cup')
-            : (isOval ? '#p2-oval-cup' : '#p2-triangle-cup')
-        piece = document.querySelector(cupSelector + ' .game-piece')
-    }
-
-    if (!piece) return // no matching pieces left in this player's cup
-
-    // immediate touch feedback -- doesn't wait on the server round trip
-    slot.classList.remove('slot-touch-flash')
-    void slot.offsetWidth
-    slot.classList.add('slot-touch-flash')
-    sndPickPiece.play()
-
-    GAME.activeGamePiece = piece
-    piece.remove()
-
-    await postData('/do', { event: 'MOVE_STARTED', currentPlayer: GAME.currentPlayer, gameID: GAME.id })
-    postData('/do', { event: 'MOVE_COMPLETE', gameID: GAME.id, currentPlayer: GAME.currentPlayer, slotID: slot.id })
 }
 
 // ****************************************************************

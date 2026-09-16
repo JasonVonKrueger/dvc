@@ -346,12 +346,16 @@ svg {
 }
 
 .fol-zoom-in {
-    transform: scale(1.8);
+    transform: translate(var(--fol-pan-x, 0px), var(--fol-pan-y, 0px)) scale(1.8);
     transition-duration: 0.9s;
+    /* the player drags this to reach slots pushed out of view by the zoom --
+       touch-action:none stops the browser's own scroll/zoom gestures from
+       fighting the drag handling in main.js */
+    touch-action: none;
 }
 
 .fol-zoom-out {
-    transform: scale(1);
+    transform: translate(var(--fol-pan-x, 0px), var(--fol-pan-y, 0px)) scale(1);
     transition-duration: 0.9s;
 }
 
@@ -385,23 +389,6 @@ svg {
     100% {
         filter: brightness(1);
         stroke-width: 21.9435;
-    }
-}
-
-/* quick one-shot acknowledgement flash for direct-placement taps */
-.slot-touch-flash {
-    animation: slot-touch-flash-anim .35s ease-out;
-}
-
-@keyframes slot-touch-flash-anim {
-    0% {
-        filter: brightness(1);
-    }
-    30% {
-        filter: brightness(2.6) saturate(0);
-    }
-    100% {
-        filter: brightness(1);
     }
 }
 
