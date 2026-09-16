@@ -22,28 +22,6 @@ let backgroundMusicID = null
 let toastContain = null
 let pendingScoreHighlights = []
 
-// current drag offset of the zoomed-in board, and whether the in-progress
-// pointer interaction has moved far enough to count as a drag rather than a
-// tap (see the fol-container pan handling and click handler in
-// initEventListeners)
-let folPanX = 0
-let folPanY = 0
-let folDragOccurred = false
-
-function setFolPan(x, y, maxX, maxY) {
-    folPanX = Math.max(-maxX, Math.min(maxX, x))
-    folPanY = Math.max(-maxY, Math.min(maxY, y))
-    cssVars.setProperty('--fol-pan-x', folPanX + 'px')
-    cssVars.setProperty('--fol-pan-y', folPanY + 'px')
-}
-
-function resetFolPan() {
-    folPanX = 0
-    folPanY = 0
-    cssVars.setProperty('--fol-pan-x', '0px')
-    cssVars.setProperty('--fol-pan-y', '0px')
-}
-
 // ****************************************************************
 // Game entry point
 // *****************************************************************
@@ -188,70 +166,8 @@ function initEventListeners() {
     })
 
     /* --------------------------------------------------------- */
-    // while zoomed in, let the player drag the board to reach slots that
-    // got pushed out of view -- a small movement threshold tells a
-    // deliberate pan apart from a tap meant to place a piece
-    ;(function () {
-        const fol = $('#fol-container')
-        let dragging = false
-        let startX = 0, startY = 0
-        let originX = 0, originY = 0
-        let maxPanX = 0, maxPanY = 0
-
-        fol.addEventListener('pointerdown', function (e) {
-            if (!fol.classList.contains('fol-zoom-in')) return
-
-            dragging = true
-            folDragOccurred = false
-            startX = e.clientX
-            startY = e.clientY
-            originX = folPanX
-            originY = folPanY
-            // leave enough of the board on-screen to still find your way back
-            maxPanX = fol.clientWidth * 0.4
-            maxPanY = fol.clientHeight * 0.4
-
-            // suppress the CSS transition while actively dragging so the pan
-            // tracks the pointer directly instead of easing toward it
-            fol.style.transitionDuration = '0s'
-            fol.setPointerCapture(e.pointerId)
-        })
-
-        fol.addEventListener('pointermove', function (e) {
-            if (!dragging) return
-
-            const dx = e.clientX - startX
-            const dy = e.clientY - startY
-
-            if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
-                folDragOccurred = true
-            }
-
-            setFolPan(originX + dx, originY + dy, maxPanX, maxPanY)
-        })
-
-        function endDrag(e) {
-            if (!dragging) return
-            dragging = false
-            fol.style.transitionDuration = ''
-            if (fol.hasPointerCapture(e.pointerId)) {
-                fol.releasePointerCapture(e.pointerId)
-            }
-        }
-
-        fol.addEventListener('pointerup', endDrag)
-        fol.addEventListener('pointercancel', endDrag)
-    })()
-
-    /* --------------------------------------------------------- */
     $('#fol-container').addEventListener('click', function(e) {
         //e.preventDefault()
-        // a drag just happened -- don't also treat its release as a tap
-        if (folDragOccurred) {
-            folDragOccurred = false
-            return
-        }
-
         let slot = document.getElementById(e.target.id)
 
         // get object array index from selected piece
@@ -267,6 +183,28 @@ function initEventListeners() {
             }
         }
     })
+
+    /* --------------------------------------------------------- */
+    // hold the spin control (only visible while zoomed in) to double the
+    // board's rotation speed; release to return to normal
+    ;(function () {
+        const spinBtn = $('#btn-spin-fol')
+        const svg = $('#svg7243')
+
+        function spinFast(e) {
+            e.preventDefault()
+            svg.style.animationDuration = '900s'
+        }
+
+        function spinNormal() {
+            svg.style.animationDuration = ''
+        }
+
+        spinBtn.addEventListener('pointerdown', spinFast)
+        spinBtn.addEventListener('pointerup', spinNormal)
+        spinBtn.addEventListener('pointercancel', spinNormal)
+        spinBtn.addEventListener('pointerleave', spinNormal)
+    })()
 
     /* --------------------------------------------------------- */
     $('#inpJoinGameCode').addEventListener('input', function(e) {
@@ -535,9 +473,9 @@ function stageGamePiece() {
         // above (and the piece-selected toggle below) lets the browser
         // batch them into one style recalc, which can skip the transition
         setTimeout(function () {
-            resetFolPan()
             $('#fol-container').classList.remove('fol-zoom-out')
             $('#fol-container').classList.add('fol-zoom-in')
+            $('#btn-spin-fol').classList.remove('hidden')
         }, 0)
     }
 

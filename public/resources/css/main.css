@@ -346,16 +346,12 @@ svg {
 }
 
 .fol-zoom-in {
-    transform: translate(var(--fol-pan-x, 0px), var(--fol-pan-y, 0px)) scale(1.8);
+    transform: scale(1.8);
     transition-duration: 0.9s;
-    /* the player drags this to reach slots pushed out of view by the zoom --
-       touch-action:none stops the browser's own scroll/zoom gestures from
-       fighting the drag handling in main.js */
-    touch-action: none;
 }
 
 .fol-zoom-out {
-    transform: translate(var(--fol-pan-x, 0px), var(--fol-pan-y, 0px)) scale(1);
+    transform: scale(1);
     transition-duration: 0.9s;
 }
 
@@ -479,6 +475,48 @@ svg {
 
 #player2-cups {
     float: right;
+}
+
+/* hold-to-spin control, only visible while the board is zoomed in */
+#btn-spin-fol {
+    position: absolute;
+    left: 50%;
+    top: 10px;
+    transform: translateX(-50%);
+    width: var(--player-cup-size);
+    height: var(--player-cup-size);
+    border: none;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 5px #7b2828;
+    background: rgba(20, 22, 22, .66);
+    color: #f5eee4;
+    font-size: 1.8rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
+}
+
+#btn-spin-fol:active {
+    background: rgba(123, 35, 28, .86);
+}
+
+#btn-spin-fol span {
+    display: inline-block;
+    animation: spin-icon 3s linear infinite;
+}
+
+#btn-spin-fol:active span {
+    animation-duration: 1.5s;
+}
+
+@keyframes spin-icon {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 /*******************************************************************/

@@ -54,9 +54,13 @@ function connectGameStream(gameID) {
                 highlightScoredPatterns()
                 if (GAME.currentPlayer == GAME.myPlayerNumber) {
                     setTimeout(function () {
-                        resetFolPan()
                         $('#fol-container').classList.remove('fol-zoom-in')
                         $('#fol-container').classList.add('fol-zoom-out')
+                        $('#btn-spin-fol').classList.add('hidden')
+                        // belt-and-suspenders: guarantees the fast-spin
+                        // speed can't get stuck on if pointerup/pointercancel
+                        // never fires (e.g. the button vanished mid-press)
+                        $('#svg7243').style.animationDuration = ''
                     }, 300)
                 }
                 GAME.moveStarted = false
