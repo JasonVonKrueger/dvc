@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Da Vinci's Challenge — Tablet Head-to-Head (Proof of Concept)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Yanone+Kaffeesatz:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --wood: #3b2416;
+            --parchment: #f1e2b8;
+            --p1-accent: #d6a56d;
+            --p2-accent: #ff8a65;
+            --font: 'Yanone Kaffeesatz', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background: #111 url('resources/images/wood.jpg');
+            background-size: cover;
+            font-family: var(--font);
+            color: #f5eee4;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /*
+         * Proof-of-concept idea: this is a SHARED tablet lying flat on a
+         * table between two seated players. The board stays centered and
+         * upright where both can reach it, and each player's two piece
+         * cups sit in the corners nearest them -- oval cups on the left,
+         * triangle cups on the right, mirroring how a physical board like
+         * this would lay pieces out at the corners. Player 2's corner cups
+         * and label are rotated 180deg so they read right-side-up from
+         * across the table.
+         */
+        #app {
+            position: relative;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .player-label-fixed {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(1.1rem, 3vw, 1.6rem);
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+
+        #player2-label {
+            top: 26px;
+            color: var(--p2-accent);
+            transform: translateX(-50%) rotate(180deg);
+        }
+
+        #player1-label {
+            bottom: 26px;
+            color: var(--p1-accent);
+        }
+
+        .player-score {
+            font-weight: 700;
+            font-size: 1.3em;
+        }
+
+        /* oval cups on the left, triangle cups on the right, one pair of
+           corners per player -- rotate composes via this custom property so
+           the 180deg player-2 flip survives regardless of what else touches
+           transform. Pieces are individually piled inside (see .game-piece
+           below), same as the production player-cups look, so the cup
+           itself is just the portrait-medallion backdrop for the pile. */
+        /* no cup graphic at all -- this is just an invisible anchor point
+           that the piece pile sits in. Its position is computed in JS from
+           the board's own actual rendered position (see positionPiles()),
+           so the pile always lands on the board itself rather than in the
+           margin around it. */
+        /* the cup medallion itself -- position is computed in JS from the
+           board's own actual rendered position (see positionPiles()), so it
+           lands on the board itself rather than in the margin around it.
+           leo1.jpg is the only Da Vinci portrait asset in this project
+           right now (it's what production's own cups already use); swap in
+           the four distinct sketches from the reference image here if
+           those source files become available. */
+        .cup {
+            --cup-rotate: 0deg;
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            overflow: hidden;
+            background-image: url('resources/images/leo1.jpg');
+            background-repeat: no-repeat;
+            background-size: 100% 100%;
+            box-shadow: inset 0 0 0 5px #7b2828, 0 6px 14px rgba(0,0,0,.5);
+            transform: rotate(var(--cup-rotate));
+        }
+
+        .cup.disabled {
+            filter: grayscale(.6) brightness(.7);
+        }
+
+        #p2-oval-cup, #p2-triangle-cup { --cup-rotate: 180deg; }
+
+        /* one real piece image per remaining piece, piled with a random
+           jitter -- same technique (and same CSS custom properties) as
+           GamePiece.js/.game-piece in the production app */
+        .game-piece {
+            position: absolute;
+            left: calc(50% + var(--piece-offset-x, 0px));
+            top: calc(50% + var(--piece-offset-y, 0px));
+            translate: -50% -50%;
+            rotate: var(--piece-rotation, 0deg);
+            transform: scale(1.05);
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+        .cup.disabled .game-piece {
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .game-piece.piece-selected {
+            z-index: 5;
+            filter: drop-shadow(4px 4px 8px rgba(0,0,0,.8)) drop-shadow(0 0 10px #fff4a3);
+        }
+
+        /* fills the whole page; the SVG below scales to fit within it at its
+           own aspect ratio, so it's always as large as it can be without
+           overflowing in either dimension */
+        #board-zone {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #board-wrap {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            filter: drop-shadow(0 10px 30px rgba(0,0,0,.6));
+        }
+
+        #board-wrap svg {
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+        }
+
+        .slot {
+            cursor: pointer;
+            transition: filter .15s ease;
+        }
+
+        .slot.slot-taken {
+            cursor: default;
+        }
+
+        .slot:not(.slot-taken):hover {
+            filter: brightness(1.4);
+        }
+
+        #turn-banner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+        }
+
+        #turn-banner .label {
+            font-size: clamp(.9rem, 2.2vw, 1.15rem);
+            letter-spacing: .15em;
+            text-transform: uppercase;
+            background: rgba(0,0,0,.55);
+            padding: 6px 18px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        #poc-note {
+            position: fixed;
+            left: 12px;
+            bottom: 8px;
+            font-size: .7rem;
+            color: rgba(245,238,228,.5);
+            letter-spacing: .05em;
+            pointer-events: none;
+        }
+
+        #reset-btn {
+            position: fixed;
+            right: 14px;
+            top: 14px;
+            font-family: var(--font);
+            font-size: .95rem;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            padding: 8px 16px;
+            border: 1px solid rgba(232,225,213,.4);
+            border-radius: 4px;
+            background: rgba(20,22,22,.66);
+            color: #f5eee4;
+            cursor: pointer;
+        }
+
+        /* diagnostic piles -- see drawCupPile(). Each container is
+           sized/positioned to exactly match its own marker and clips to a
+           circle, so pieces can never render outside the cup even if a
+           random offset pushes one close to the edge. */
+        .test-cup-container {
+            position: fixed;
+            border-radius: 50%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .test-cup-piece-img {
+            position: absolute;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app">
+        <div id="board-zone">
+            <div id="board-wrap"></div>
+            <div id="turn-banner"><div class="label" id="turn-label">Player 1's turn — pick a piece</div></div>
+        </div>
+
+        <!-- Player 2 sits across the table -- their label is flipped -->
+        <div id="player2-label" class="player-label-fixed">Player 2 &nbsp;<span class="player-score" id="p2-score">0</span></div>
+
+        <!-- Player 1 sits on the near side, upright as normal -->
+        <div id="player1-label" class="player-label-fixed"><span class="player-score" id="p1-score">0</span>&nbsp; Player 1</div>
+    </div>
+
+    <button id="reset-btn">Reset board</button>
+    <div id="poc-note">Proof of concept — layout &amp; head-to-head placement only, no scoring engine wired up yet.</div>
+
+    <script>
+        const $ = (sel, scope = document) => scope.querySelector(sel)
+        const $$ = (sel, scope = document) => Array.from(scope.querySelectorAll(sel))
+
+        const STARTING_OVALS = 45
+        const STARTING_TRIANGLES = 27
+
+        // sprite per player+piece, matching the production naming scheme
+        const PIECE_SPRITE = {
+            1: { oval: 'whiteOval', triangle: 'whiteTriangle' },
+            2: { oval: 'blackOval', triangle: 'blackTriangle' }
+        }
+
+        const state = {
+            currentPlayer: 1,
+            selectedPieceEl: null // the actual <img> the current player has staged, or null
+        }
+
+        // piles up real piece images inside a cup, one per remaining piece --
+        // same randomized-jitter technique as GamePiece.js in the main app
+        function fillCup(player, pieceType) {
+            const cup = $('#p' + player + '-' + pieceType + '-cup')
+            const count = pieceType === 'oval' ? STARTING_OVALS : STARTING_TRIANGLES
+            const sprite = PIECE_SPRITE[player][pieceType]
+
+            // spread pieces across the whole 150px cup (not just a small
+            // clump at its center) using polar coordinates so the pile
+            // actually fills the circle edge-to-edge, like a real pile of
+            // pieces poured into a bowl -- sqrt(random) biases for a more
+            // even fill across the area instead of bunching at the middle
+            const maxRadius = 55
+
+            for (let i = 1; i <= count; i++) {
+                const img = document.createElement('img')
+                img.src = 'resources/images/' + sprite + '.png'
+                img.className = 'game-piece'
+                img.dataset.player = player
+                img.dataset.piece = pieceType
+
+                const angle = Math.random() * Math.PI * 2
+                const radius = Math.sqrt(Math.random()) * maxRadius
+                const offsetX = Math.round(Math.cos(angle) * radius)
+                const offsetY = Math.round(Math.sin(angle) * radius)
+                const randomRotation = Math.round((Math.random() * 360) - 180)
+                img.style.setProperty('--piece-offset-x', offsetX + 'px')
+                img.style.setProperty('--piece-offset-y', offsetY + 'px')
+                img.style.setProperty('--piece-rotation', randomRotation + 'deg')
+
+                img.addEventListener('click', function (e) {
+                    e.stopPropagation()
+                    onPieceClick(img)
+                })
+
+                cup.appendChild(img)
+            }
+        }
+
+        // marble-style fills, same technique used in the main app: a couple of
+        // radial gradients dropped into the SVG's own <defs> so slots can be
+        // filled with fill="url(#...)" instead of a flat color
+        const MARBLE_DEFS = `
+            <defs id="poc-marble-defs">
+                <radialGradient id="pocMarbleWhite" cx="50%" cy="42%" r="70%">
+                    <stop offset="0%" stop-color="#ffffff" />
+                    <stop offset="45%" stop-color="#ececec" />
+                    <stop offset="75%" stop-color="#cfcfcf" />
+                    <stop offset="100%" stop-color="#a8a8a8" />
+                </radialGradient>
+                <radialGradient id="pocMarbleBlack" cx="50%" cy="42%" r="70%">
+                    <stop offset="0%" stop-color="#5a5a5a" />
+                    <stop offset="40%" stop-color="#2b2b2b" />
+                    <stop offset="75%" stop-color="#101010" />
+                    <stop offset="100%" stop-color="#000000" />
+                </radialGradient>
+            </defs>
+        `
+
+        async function loadBoard() {
+            const response = await fetch('resources/images/gameboard.svg')
+            let svgText = await response.text()
+
+            // inject our fill defs right after the opening <svg ...> tag
+            svgText = svgText.replace(/(<svg\b[^>]*>)/, '$1' + MARBLE_DEFS)
+
+            $('#board-wrap').innerHTML = svgText
+
+            $$('.slot', $('#board-wrap')).forEach(function (slot) {
+                slot.addEventListener('click', function () {
+                    onSlotClick(slot)
+                })
+            })
+        }
+
+        // diagnostic step: gameboard.svg already has an invisible <ellipse
+        // id="cupBlackOvals"> (and 3 siblings: cupWhiteOvals,
+        // cupBlackTriangles, cupWhiteTriangles) marking exactly where each
+        // cup belongs, authored right into the artwork. Find it, read its
+        // actual rendered position, and drop a plain 60px black circle
+        // centered on it -- proves the marker-based approach lines up
+        // before building the real piece piles on top of it.
+        // fills a named board marker (e.g. cupBlackOvals) with a pile of a
+        // given sprite -- a container sized/positioned to exactly match the
+        // marker's own rendered ellipse, clipped to a circle, so pieces
+        // stay confined within it regardless of how far a given piece's
+        // random offset pushes it
+        function drawCupPile(markerId, containerId, sprite, count) {
+            const marker = $('#' + markerId, $('#board-wrap'))
+            if (!marker) {
+                console.error(markerId + ' not found in gameboard.svg')
+                return
+            }
+
+            const rect = marker.getBoundingClientRect()
+
+            let container = $('#' + containerId)
+            if (!container) {
+                container = document.createElement('div')
+                container.id = containerId
+                container.className = 'test-cup-container'
+                document.body.appendChild(container)
+            }
+            container.style.left = rect.left + 'px'
+            container.style.top = rect.top + 'px'
+            container.style.width = rect.width + 'px'
+            container.style.height = rect.height + 'px'
+
+            // rebuild the pile fresh each call (e.g. on resize) so pieces
+            // don't accumulate or end up positioned for a stale rect
+            container.innerHTML = ''
+
+            const pieceHeight = rect.height * 0.5
+            const maxRadiusX = rect.width * 0.28
+            const maxRadiusY = rect.height * 0.28
+
+            for (let i = 0; i < count; i++) {
+                const img = document.createElement('img')
+                img.src = 'resources/images/' + sprite + '.png'
+                img.className = 'test-cup-piece-img'
+                img.style.height = pieceHeight + 'px'
+
+                // polar jitter (sqrt-biased for an even fill) keeps pieces
+                // spread across the whole cup instead of bunched at center
+                const angle = Math.random() * Math.PI * 2
+                const spread = Math.sqrt(Math.random())
+                const offsetX = Math.cos(angle) * spread * maxRadiusX
+                const offsetY = Math.sin(angle) * spread * maxRadiusY
+                const rotateDeg = Math.round((Math.random() * 360) - 180)
+
+                img.style.left = 'calc(50% + ' + offsetX + 'px)'
+                img.style.top = 'calc(50% + ' + offsetY + 'px)'
+                img.style.transform = 'translate(-50%, -50%) rotate(' + rotateDeg + 'deg)'
+
+                container.appendChild(img)
+            }
+        }
+
+        // 45 ovals per player, per lib/game.js's remainingOvals
+        function drawTestCupMarker() {
+            drawCupPile('cupBlackOvals', 'test-cup-black-ovals', 'blackOval', 45)
+            drawCupPile('cupWhiteOvals', 'test-cup-white-ovals', 'whiteOval', 45)
+            // 27 triangles per player, per lib/game.js's remainingTriangles
+            drawCupPile('cupBlackTriangles', 'test-cup-black-triangles', 'blackTriangle', 27)
+            drawCupPile('cupWhiteTriangles', 'test-cup-white-triangles', 'whiteTriangle', 27)
+        }
+
+        // positions each piece pile relative to the board's own actual
+        // rendered position/size (not fixed page corners), so the pieces
+        // sit on the board itself at any screen size or aspect ratio
+        function positionPiles() {
+            const svg = $('#board-wrap svg')
+            if (!svg) return
+
+            const rect = svg.getBoundingClientRect()
+            const insetX = rect.width * 0.10
+            const insetY = rect.height * 0.10
+            const cupSize = 150
+
+            function place(id, x, y) {
+                const el = $('#' + id)
+                el.style.left = (x - cupSize / 2) + 'px'
+                el.style.top = (y - cupSize / 2) + 'px'
+            }
+
+            place('p2-oval-cup', rect.left + insetX, rect.top + insetY)
+            place('p2-triangle-cup', rect.right - insetX, rect.top + insetY)
+            place('p1-oval-cup', rect.left + insetX, rect.bottom - insetY)
+        }
+
+        function updateCupUI() {
+            [1, 2].forEach(function (player) {
+                const isMyTurn = state.currentPlayer === player
+                // player 1 only has an oval cup -- p1-triangle-cup was removed
+                const pieceTypes = player === 1 ? ['oval'] : ['oval', 'triangle']
+                pieceTypes.forEach(function (piece) {
+                    $('#p' + player + '-' + piece + '-cup').classList.toggle('disabled', !isMyTurn)
+                })
+            })
+        }
+
+        function updateTurnBanner() {
+            const label = $('#turn-label')
+            if (state.selectedPieceEl) {
+                label.textContent = 'Player ' + state.currentPlayer + ' — tap a matching open slot'
+            } else {
+                label.textContent = "Player " + state.currentPlayer + "'s turn — pick a piece"
+            }
+        }
+
+        function onPieceClick(img) {
+            const player = Number(img.dataset.player)
+            if (player !== state.currentPlayer) return
+
+            if (state.selectedPieceEl === img) {
+                // clicking the already-staged piece puts it back down
+                img.classList.remove('piece-selected')
+                state.selectedPieceEl = null
+            } else {
+                if (state.selectedPieceEl) {
+                    state.selectedPieceEl.classList.remove('piece-selected')
+                }
+                img.classList.add('piece-selected')
+                state.selectedPieceEl = img
+            }
+
+            updateTurnBanner()
+        }
+
+        function onSlotClick(slot) {
+            if (!state.selectedPieceEl) return
+            if (slot.classList.contains('slot-taken')) return
+
+            const isOval = slot.id.indexOf('oval') > -1
+            const slotPiece = isOval ? 'oval' : 'triangle'
+            if (slotPiece !== state.selectedPieceEl.dataset.piece) return
+
+            const player = state.currentPlayer
+            const fillId = player === 1 ? 'pocMarbleWhite' : 'pocMarbleBlack'
+            const strokeColor = player === 1 ? '#000000' : '#ffba8b'
+
+            slot.style.fill = 'url(#' + fillId + ')'
+            slot.style.stroke = strokeColor
+            slot.style.strokeWidth = '13.2538'
+            slot.classList.add('slot-taken')
+
+            state.selectedPieceEl.remove()
+            state.selectedPieceEl = null
+            state.currentPlayer = player === 1 ? 2 : 1
+
+            updateCupUI()
+            updateTurnBanner()
+        }
+
+        function resetBoard() {
+            state.currentPlayer = 1
+            state.selectedPieceEl = null
+
+            $$('.game-piece').forEach(function (img) { img.remove() })
+            fillCup(1, 'oval')
+            fillCup(2, 'oval')
+            fillCup(2, 'triangle')
+
+            $$('.slot', $('#board-wrap')).forEach(function (slot) {
+                slot.classList.remove('slot-taken')
+                slot.style.fill = ''
+                slot.style.stroke = ''
+                slot.style.strokeWidth = ''
+            })
+
+            updateCupUI()
+            updateTurnBanner()
+        }
+
+        window.addEventListener('load', async function () {
+            await loadBoard()
+
+            // --- isolated test: confirm the cupBlackOvals marker lines up
+            // before rebuilding the piece piles on top of it ---
+            drawTestCupMarker()
+            window.addEventListener('resize', drawTestCupMarker)
+            return
+
+            // (temporarily unreachable while testing the above)
+            positionPiles()
+
+            fillCup(1, 'oval')
+            fillCup(2, 'oval')
+            fillCup(2, 'triangle')
+
+            $('#reset-btn').addEventListener('click', resetBoard)
+            window.addEventListener('resize', positionPiles)
+
+            updateCupUI()
+            updateTurnBanner()
+        })
+    </script>
+
+</body>
+
+</html>
