@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Da Vinci's Challenge — Tablet Head-to-Head (Proof of Concept)</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <link href="https://fonts.googleapis.com/css2?family=Yanone+Kaffeesatz:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -20,6 +20,8 @@
         }
 
         html, body {
+            position: fixed;
+            inset: 0;
             margin: 0;
             padding: 0;
             height: 100%;
@@ -535,6 +537,11 @@
             updateCupUI()
             updateTurnBanner()
         }
+
+        // iOS Safari's whole-page rubber-band bounce isn't reliably blocked by
+        // the touch-action/overscroll-behavior CSS alone -- nothing on this
+        // page needs to scroll, so just swallow touchmove outright
+        document.addEventListener('touchmove', function (e) { e.preventDefault() }, { passive: false })
 
         window.addEventListener('load', async function () {
             await loadBoard()

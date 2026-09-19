@@ -86,6 +86,16 @@ function initEventListeners() {
     // window.includesLoaded already waited on)
     requestAnimationFrame(folRotationTick)
 
+    // the board/header/cups have nothing to scroll -- on iOS Safari,
+    // overflow:hidden on html/body alone doesn't reliably stop the
+    // whole-page rubber-band bounce, which is what let a drag shove the
+    // board off-screen. Swallowing touchmove here (but not inside modals or
+    // the splash screen, which do need to scroll) blocks that without
+    // touching their overflow:auto content.
+    $('#top-container').addEventListener('touchmove', function (e) {
+        e.preventDefault()
+    }, { passive: false })
+
     /* --------------------------------------------------------- */
     // add mousedown listener for buttons
     $$('.clicker').forEach(function(clicker) {

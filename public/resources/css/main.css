@@ -25,7 +25,9 @@ body {
     width: 100vw;
     margin: 0px;
     padding: 0px;
+    overflow-x: hidden;
     overflow-y: hidden;
+    overscroll-behavior: none;
     background-color: #000;
     background-image: url('../images/m-tile1.jpeg');
     background-repeat: no-repeat;
