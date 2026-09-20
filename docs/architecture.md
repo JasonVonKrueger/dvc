@@ -52,7 +52,8 @@ graph TD
 ### 3. Client Architecture (`public/`)
 - **`public/index.html`**: Main HTML document providing the board viewport, scoreboards, and modal layers (Rules, Options, Play a Friend, Game Over).
 - **`public/resources/js/main.js`**: Client entry point managing DOM event listeners, board animations, game setup, move submission, sound effects, and testing mode toggles.
-- **`public/resources/js/sse.js`**: Server-Sent Events client that listens for streamed events (`GAME_STARTED`, `MOVE_COMPLETE`, `SWITCH_PLAYER`, `STAGE_BOT`, `SCORE`) and updates local DOM state accordingly.
+- **`public/resources/js/sse.js`**: Server-Sent Events client that listens for streamed events (`GAME_STARTED`, `MOVE_COMPLETE`, `SWITCH_PLAYER`, `STAGE_BOT`, `SCORE`) and updates local DOM state accordingly. `connectGameStream()` returns a promise that resolves once the subscription is live, so callers that need to trigger a broadcast of their own right after connecting (see Game Resumption below) don't race the handshake.
+- **`public/resources/js/storage.js`**: IndexedDB wrapper that persists the player's generated identity (`playerName`) and a pointer to their most recent game (`lastGame`: gameID + seat) across browser restarts — the basis for the "Resume game" flow.
 - **`public/resources/classes/`**:
   - `Game.js`: Client-side state container.
   - `GamePiece.js`: Manages visual game piece instantiation, SVG placement, and click handlers in player cups.
@@ -110,6 +111,15 @@ The game checks end conditions immediately after updating board state:
   1. A player depletes all of their remaining pieces (0 ovals AND 0 triangles).
   2. No legal open slots remain on the board or neither player has valid pieces for remaining open slots.
 - **UI Presentation**: Displays a centered modal (`#game-over-modal`) with prominent "Game Over" typography and announces the winner (or a tie) based on final score totals.
+
+### 5. Game Resumption / State Rehydration
+No game type — solo, local pass-and-play, or remote friend — has to be finished in one sitting. The server already persists every game (SQLite via `lib/store.js`) and `GET /game/:gameID/state` returns full board/score/turn state for any game type, so resumption is driven entirely from the client:
+- **Remembering the last game**: `storage.js` writes `{ gameID, playerNumber }` to IndexedDB (`saveLastGame`) whenever a game is created or successfully restored, for any type. On a plain page load with no `?join=`/`?resume=` link, `offerResumeIfAvailable()` (`main.js`) checks that pointer against `/game/:gameID/state`; if the game is still active it un-hides the splash screen's "Resume game" button.
+- **Rehydrating the board**: `restoreGameState()` (`main.js`) repaints already-placed pieces, derives each side's true remaining piece counts from their placed-slot lists (not the `remainingOvals`/`remainingTriangles` fields, which are only authoritative for the bot), and restores the scoreboard and whose turn it is via `initBoard()`.
+- **Per-type quirks on resume**:
+  - **Local pass-and-play**: one device speaks for whichever seat is currently up, so the resumed seat is set directly from `currentPlayer` rather than by matching a stored identity name.
+  - **Solo (vs. bot)**: if resuming lands mid-bot-turn, the `SWITCH_PLAYER` event that would normally trigger `GO_BOT` already happened before this reconnect, so `restoreGameState()` fires `GO_BOT` itself once `connectGameStream()`'s returned promise confirms the SSE subscription is live (avoiding a race where the bot's `STAGE_BOT` broadcast fires before the client is listening).
+  - **Remote friend**: also reachable via a push-notification deep link (`/index.html?resume=<gameID>`, see `notifyPlayerTurn` in `app.js`), independent of the IndexedDB pointer — this is the only type that sends a cross-device "it's your turn" push, since it's the only type where the other player isn't on the same device.
 
 ---
 

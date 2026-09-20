@@ -351,13 +351,17 @@ async function createGame(type) {
 
     if (type === '(friend)') {
         await joinGame(1) // mark the host as joined
-        saveLastGame(GAME.id, GAME.myPlayerNumber)
     }
 
     if (type === '(local)') {
         await joinGame(1) // player 1 join
         joinGame(2) // player 2 join, same device
     }
+
+    // every game type can now be picked back up after a refresh/relaunch,
+    // not just remote (friend) matches -- remember it so offerResumeIfAvailable
+    // can offer it back
+    saveLastGame(GAME.id, GAME.myPlayerNumber)
 }
 
 // ****************************************************************
@@ -408,10 +412,10 @@ async function joinAsGuest(gameID) {
 }
 
 // ****************************************************************
-// State recovery from server for rehydration / refresh -- these matches
-// don't have to be finished in one sitting, so this has to fully rebuild
-// the board (already-placed pieces, remaining piece counts, whose turn it
-// is), not just the scoreboard
+// State recovery from server for rehydration / refresh -- no game type has
+// to be finished in one sitting, so this has to fully rebuild the board
+// (already-placed pieces, remaining piece counts, whose turn it is), not
+// just the scoreboard
 async function restoreGameState(gameID) {
     try {
         let response = await fetch(`/game/${gameID}/state`)
@@ -426,13 +430,20 @@ async function restoreGameState(gameID) {
         GAME.playerOneName = data.playerOne ? data.playerOne.name : null
         GAME.playerTwoName = data.playerTwo ? data.playerTwo.name : null
 
-        // figure out which seat this device sits in by matching the
-        // persistent identity storage.js already gave us against the game's
-        // two seats
-        if (data.playerOne && data.playerOne.name === GAME.myPlayerName) {
-            GAME.myPlayerNumber = 1
-        } else if (data.playerTwo && data.playerTwo.name === GAME.myPlayerName) {
-            GAME.myPlayerNumber = 2
+        if (data.type === '(local)') {
+            // pass-and-play: it's one device controlling whichever seat is
+            // currently up, not a fixed identity -- name-matching below
+            // would always land on whoever created the match
+            GAME.myPlayerNumber = data.currentPlayer
+        } else {
+            // figure out which seat this device sits in by matching the
+            // persistent identity storage.js already gave us against the
+            // game's two seats
+            if (data.playerOne && data.playerOne.name === GAME.myPlayerName) {
+                GAME.myPlayerNumber = 1
+            } else if (data.playerTwo && data.playerTwo.name === GAME.myPlayerName) {
+                GAME.myPlayerNumber = 2
+            }
         }
 
         if (data.playerOne) {
@@ -443,10 +454,19 @@ async function restoreGameState(gameID) {
         }
 
         initBoard(data)
-        connectGameStream(gameID)
+        const streamOpen = connectGameStream(gameID)
+        saveLastGame(gameID, GAME.myPlayerNumber)
 
-        if (data.type === '(friend)') {
-            saveLastGame(gameID, GAME.myPlayerNumber)
+        // solo mode: if play stopped mid-refresh while the bot was up, the
+        // SWITCH_PLAYER event that would normally kick it off already came
+        // and went before this reconnect -- nudge it ourselves so the game
+        // doesn't stall waiting for a turn that'll never arrive. Wait for
+        // the SSE stream to actually be subscribed first, or the STAGE_BOT
+        // broadcast this triggers can fire before we're listening for it.
+        if (data.type === '(solo)' && data.currentPlayer === 2) {
+            streamOpen.then(function () {
+                postData('/do', { event: 'GO_BOT', gameID: gameID })
+            })
         }
 
         return true
@@ -467,8 +487,8 @@ async function resumeGame(gameID) {
 
 // ****************************************************************
 // on a fresh page load with no explicit join/resume link, offer to jump
-// back into whatever (friend) game this device was last in, if it's still
-// going
+// back into whatever game (solo, local, or friend) this device was last
+// in, if it's still going
 async function offerResumeIfAvailable() {
     const lastGame = await loadLastGame()
     if (!lastGame || !lastGame.gameID) return

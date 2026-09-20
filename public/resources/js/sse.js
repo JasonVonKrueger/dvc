@@ -9,6 +9,10 @@ let eventSource = null
 // more than once for a single placed piece).
 let lastProcessedEventId = 0
 
+// returns a promise that resolves once the stream is actually subscribed
+// server-side -- callers that immediately trigger a broadcast of their own
+// right after connecting (e.g. resuming into a solo game and nudging the
+// bot) can await this instead of racing the SSE handshake
 function connectGameStream(gameID) {
     if (eventSource) {
         eventSource.close()
@@ -16,8 +20,12 @@ function connectGameStream(gameID) {
 
     eventSource = new EventSource(`/game/${gameID}/events`)
 
+    let resolveOpen
+    const opened = new Promise(function (resolve) { resolveOpen = resolve })
+
     eventSource.onopen = function (e) {
         console.log('DVC SSE stream connected for game:', gameID)
+        resolveOpen()
     }
 
     eventSource.onerror = function (error) {
@@ -134,4 +142,6 @@ function connectGameStream(gameID) {
             // Heartbeat or non-json message
         }
     }
+
+    return opened
 }

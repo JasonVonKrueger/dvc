@@ -74,9 +74,9 @@ function loadPlayerName() {
 }
 
 // ****************************************************************
-// remember the most recent remote (friend) game this device took part in,
-// so it can be offered back as "Resume game" -- these matches don't have to
-// finish in one sitting
+// remember the most recent game (solo, local pass-and-play, or remote
+// friend) this device took part in, so it can be offered back as "Resume
+// game" -- no game type has to finish in one sitting
 function saveLastGame(gameID, playerNumber) {
     if (!gameID) return Promise.resolve(null)
 

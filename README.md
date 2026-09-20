@@ -20,9 +20,15 @@ Launch a browser and go to http://localhost:9115
 
 You'll want to either adjust the size of the browser window or open the debugger tools and switch the resolution to a mobile display (Chrome).
 
+## Resuming a game
+
+No match — single player, local pass-and-play, or remote `Play a friend` — has to be finished in one sitting. Each browser remembers the last game it took part in (via IndexedDB), and the splash screen offers a "Resume game" button back into it as long as the game is still active. This works the same way for all three game types.
+
+`Play a friend` games have one extra trick: since the other player is on a different device, a real push notification (see below) is sent to whichever player is up next, with a deep link that jumps straight back into the match.
+
 ## Push notifications ("it's your turn")
 
-Remote (`Play a friend`) games send a real push notification to whichever player is up next, so a match doesn't have to be finished in one sitting. This uses Web Push (VAPID), which needs a keypair the server signs messages with.
+Remote (`Play a friend`) games send a real push notification to whichever player is up next, so they don't have to keep the app open waiting for their opponent. This uses Web Push (VAPID), which needs a keypair the server signs messages with.
 
 **Without any setup**, the app still runs fine locally — `lib/push.js` auto-generates a temporary keypair on boot and logs a warning. That's fine for poking around, but every restart invalidates it, so any existing subscriptions silently stop working. Set real keys (below) for anything you don't want to keep re-subscribing to.
 
