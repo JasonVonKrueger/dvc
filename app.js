@@ -1,6 +1,12 @@
 /* ************************************************************************************
     @desc - single server process that serves pages and handles SSE connections
 ************************************************************************************ */
+// loads .env into process.env if one exists (local dev convenience) -- in
+// production these are expected to be real environment variables instead,
+// so a missing .env file here is not an error. Must run before anything
+// below reads process.env (lib/push.js reads VAPID keys at require-time).
+require('dotenv').config()
+
 const GAMES = []
 const GAME_ID_LENGTH = 5
 const config = require('./conf/server')

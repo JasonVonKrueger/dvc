@@ -20,4 +20,44 @@ Launch a browser and go to http://localhost:9115
 
 You'll want to either adjust the size of the browser window or open the debugger tools and switch the resolution to a mobile display (Chrome).
 
+## Push notifications ("it's your turn")
+
+Remote (`Play a friend`) games send a real push notification to whichever player is up next, so a match doesn't have to be finished in one sitting. This uses Web Push (VAPID), which needs a keypair the server signs messages with.
+
+**Without any setup**, the app still runs fine locally — `lib/push.js` auto-generates a temporary keypair on boot and logs a warning. That's fine for poking around, but every restart invalidates it, so any existing subscriptions silently stop working. Set real keys (below) for anything you don't want to keep re-subscribing to.
+
+### Generate a keypair
+
+```
+npx web-push generate-vapid-keys
+```
+
+This prints a `Public Key` and `Private Key`. The private key is a secret — never commit it.
+
+### Local dev
+
+Copy `.env.example` to `.env` and fill in the keys you just generated:
+
+```
+cp .env.example .env
+```
+
+`app.js` loads `.env` automatically on startup (via `dotenv`) if one exists, so `npm start` just picks it up — no exporting needed. `.env` is gitignored; never commit it.
+
+(You can still `export VAPID_PUBLIC_KEY=...`/`export VAPID_PRIVATE_KEY=...` by hand instead if you'd rather not use a file — either way ends up in `process.env`, which is all `lib/push.js` actually reads.)
+
+`VAPID_SUBJECT` is optional and defaults to `mailto:admin@davincischallenge.app` (`lib/push.js`) — only set it if push services should contact a different address about your server.
+
+### Production
+
+Set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and (optionally) `VAPID_SUBJECT` as real environment variables on the server, the same way `ADMIN_TOKEN` is set today. Generate the keypair **once** and reuse it across deploys/restarts; generating a new one invalidates every player's existing subscription.
+
+If the app runs under pm2 (see `scripts/deploy.sh`), pm2 caches the environment from when a process was first started, so after adding these vars you'll need:
+
+```
+pm2 restart dvc --update-env
+```
+
+instead of a plain `pm2 restart` for it to pick them up.
+
 
