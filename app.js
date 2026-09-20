@@ -6,6 +6,7 @@ const GAME_ID_LENGTH = 5
 const config = require('./conf/server')
 const Game = require('./lib/game')
 const store = require('./lib/store')
+const push = require('./lib/push')
 const express = require('express')
 const path = require('path')
 const app = express()
@@ -145,6 +146,36 @@ app.get('/game/:gameID/state', function(req, res) {
         playerTwo: currentGame.playerTwo,
         availableSlots: currentGame.availableSlots
     })
+})
+
+// ****************************************************************
+// Web Push subscription management -- keyed to the persistent player
+// identity (the same generated name used as players.id), not a game, since
+// a device's subscription outlives any single match
+app.get('/push/vapid-public-key', function(req, res) {
+    res.send({ key: push.getPublicKey() })
+})
+
+app.post('/push/subscribe', rateLimit(30, 60000), function(req, res) {
+    let { playerID, subscription } = req.body
+
+    if (!playerID || !subscription || !subscription.endpoint || !subscription.keys) {
+        return res.status(400).send({ errMsg: 'playerID and a valid subscription are required' })
+    }
+
+    store.saveSubscription(playerID, subscription)
+    res.send({ message: 'ok' })
+})
+
+app.post('/push/unsubscribe', rateLimit(30, 60000), function(req, res) {
+    let { endpoint } = req.body
+
+    if (!endpoint) {
+        return res.status(400).send({ errMsg: 'endpoint is required' })
+    }
+
+    store.removeSubscription(endpoint)
+    res.send({ message: 'ok' })
 })
 
 app.post('/do', function(req, res) {
@@ -350,16 +381,39 @@ function startMove(gameID, currentPlayer) {
         currentGame.currentPlayer = (currentPlayer === 1) ? 2 : 1
         store.updateGameState(currentGame)
 
-        broadcast(JSON.stringify({ type: 'BROADCAST', 
-                                event: 'SWITCH_PLAYER', 
+        broadcast(JSON.stringify({ type: 'BROADCAST',
+                                event: 'SWITCH_PLAYER',
                                 gameID: currentGame.id,
                                 currentPlayer: currentGame.currentPlayer }));
+
+        notifyPlayerTurn(currentGame)
 
         return { message: 'ok' }
     }
     else {
         return { message: 'Game not found' }
     }
+}
+
+// ****************************************************************
+// push "it's your turn" to whichever player is now up -- remote (friend)
+// games only; local pass-and-play and solo/bot games are on one device or
+// don't need a device-to-device nudge at all. Fire-and-forget: a push
+// failure must never affect the move that triggered it.
+function notifyPlayerTurn(currentGame) {
+    if (currentGame.type !== '(friend)') return
+
+    let upNext = currentGame.currentPlayer === 1 ? currentGame.playerOne : currentGame.playerTwo
+    if (!upNext || !upNext.name || upNext.isBot) return
+
+    push.sendTurnNotification(upNext.name, {
+        title: "It's your turn!",
+        body: 'Da Vinci\'s Challenge is waiting on your move.',
+        gameID: currentGame.id,
+        url: '/index.html?resume=' + currentGame.id
+    }).catch(function (err) {
+        console.error('notifyPlayerTurn error:', err.message)
+    })
 }
 
  // ****************************************************************

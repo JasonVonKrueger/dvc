@@ -6,6 +6,7 @@ const DVC_DB_NAME = 'dvc'
 const DVC_DB_VERSION = 1
 const DVC_STORE = 'player'
 const DVC_PLAYER_NAME_KEY = 'playerName'
+const DVC_LAST_GAME_KEY = 'lastGame'
 
 function openPlayerDB() {
     return new Promise(function (resolve, reject) {
@@ -70,4 +71,37 @@ function loadPlayerName() {
         console.warn('Unable to read player name: ' + err.message)
         return null
     })
+}
+
+// ****************************************************************
+// remember the most recent remote (friend) game this device took part in,
+// so it can be offered back as "Resume game" -- these matches don't have to
+// finish in one sitting
+function saveLastGame(gameID, playerNumber) {
+    if (!gameID) return Promise.resolve(null)
+
+    return withStore('readwrite', function (store) {
+        store.put({ gameID: gameID, playerNumber: playerNumber, updated: Date.now() }, DVC_LAST_GAME_KEY)
+    })
+    .catch(function (err) {
+        console.warn('Unable to store last game: ' + err.message)
+    })
+}
+
+function loadLastGame() {
+    return withStore('readonly', function (store) {
+        return store.get(DVC_LAST_GAME_KEY)
+    })
+    .then(function (record) { return record || null })
+    .catch(function (err) {
+        console.warn('Unable to read last game: ' + err.message)
+        return null
+    })
+}
+
+function clearLastGame() {
+    return withStore('readwrite', function (store) {
+        store.delete(DVC_LAST_GAME_KEY)
+    })
+    .catch(function () { /* non-critical */ })
 }

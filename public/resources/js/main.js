@@ -55,22 +55,32 @@ function folRotationTick(timestamp) {
 // ****************************************************************
 // Game entry point
 // *****************************************************************
-loadPlayerName().then(function (name) {
+const playerNameLoaded = loadPlayerName().then(function (name) {
     GAME.myPlayerName = name
 })
 
-// a shared "Play a Friend" link looks like /?join=X7K9P
+registerServiceWorker()
+
+// a shared "Play a Friend" link looks like /?join=X7K9P; a turn-notification
+// tap looks like /?resume=X7K9P (see lib/push.js on the server + the
+// service worker's notificationclick handler)
 const joinCode = new URLSearchParams(window.location.search).get('join')
+const resumeGameID = new URLSearchParams(window.location.search).get('resume')
 
 // wait for the actual data-include fragments (splash screen, modals, board
 // SVG) to finish loading rather than guessing at a fixed delay -- on a slow
 // mobile connection a fixed delay can expire before the buttons even exist
 // in the DOM yet, which is why a first tap can appear to do nothing
-window.includesLoaded.then(function () {
+Promise.all([window.includesLoaded, playerNameLoaded]).then(async function () {
     initEventListeners()
 
     if (joinCode) {
         joinAsGuest(joinCode.toUpperCase())
+    } else if (resumeGameID) {
+        const resumed = await resumeGame(resumeGameID)
+        if (!resumed) showToast("That game isn't available anymore")
+    } else {
+        offerResumeIfAvailable()
     }
 })
 
@@ -193,6 +203,18 @@ function initEventListeners() {
         closeModal('point-values-modal')
         $('#game-options').classList.remove('hidden')
         $('.modal-content').classList.add('modal-zoom-in')
+        refreshTurnNotificationsToggle()
+    })
+
+    /* --------------------------------------------------------- */
+    // one-time opt-in prompt, shown when a friend game starts (see sse.js)
+    $('#btnNotifyEnable').addEventListener('click', async function (e) {
+        await enableTurnNotifications(GAME.myPlayerName)
+        hideNotifyBanner()
+    })
+
+    $('#btnNotifyDismiss').addEventListener('click', function (e) {
+        hideNotifyBanner()
     })
 
     /* --------------------------------------------------------- */
@@ -329,6 +351,7 @@ async function createGame(type) {
 
     if (type === '(friend)') {
         await joinGame(1) // mark the host as joined
+        saveLastGame(GAME.id, GAME.myPlayerNumber)
     }
 
     if (type === '(local)') {
@@ -380,20 +403,38 @@ async function joinAsGuest(gameID) {
     const joined = await joinGame(2)
     if (!joined) return
 
+    saveLastGame(GAME.id, GAME.myPlayerNumber)
     $('#twoPlayerModal').classList.add('hidden')
 }
 
 // ****************************************************************
-// State recovery from server for rehydration / refresh
+// State recovery from server for rehydration / refresh -- these matches
+// don't have to be finished in one sitting, so this has to fully rebuild
+// the board (already-placed pieces, remaining piece counts, whose turn it
+// is), not just the scoreboard
 async function restoreGameState(gameID) {
     try {
         let response = await fetch(`/game/${gameID}/state`)
         if (!response.ok) return false
         let data = await response.json()
 
+        if (data.status === 'complete') return false
+
         GAME.id = data.gameID
         GAME.type = data.type
         GAME.currentPlayer = data.currentPlayer
+        GAME.playerOneName = data.playerOne ? data.playerOne.name : null
+        GAME.playerTwoName = data.playerTwo ? data.playerTwo.name : null
+
+        // figure out which seat this device sits in by matching the
+        // persistent identity storage.js already gave us against the game's
+        // two seats
+        if (data.playerOne && data.playerOne.name === GAME.myPlayerName) {
+            GAME.myPlayerNumber = 1
+        } else if (data.playerTwo && data.playerTwo.name === GAME.myPlayerName) {
+            GAME.myPlayerNumber = 2
+        }
+
         if (data.playerOne) {
             $('#player1-score').innerHTML = data.playerOne.score || 0
         }
@@ -401,12 +442,59 @@ async function restoreGameState(gameID) {
             $('#player2-score').innerHTML = data.playerTwo.score || 0
         }
 
+        initBoard(data)
         connectGameStream(gameID)
+
+        if (data.type === '(friend)') {
+            saveLastGame(gameID, GAME.myPlayerNumber)
+        }
+
         return true
     } catch (err) {
         console.error('Error restoring game state:', err)
         return false
     }
+}
+
+// ****************************************************************
+// entry point for both a notification tap (?resume=) and the splash
+// screen's "Resume game" button
+async function resumeGame(gameID) {
+    const restored = await restoreGameState(gameID)
+    if (!restored) clearLastGame()
+    return restored
+}
+
+// ****************************************************************
+// on a fresh page load with no explicit join/resume link, offer to jump
+// back into whatever (friend) game this device was last in, if it's still
+// going
+async function offerResumeIfAvailable() {
+    const lastGame = await loadLastGame()
+    if (!lastGame || !lastGame.gameID) return
+
+    try {
+        let response = await fetch(`/game/${lastGame.gameID}/state`)
+        if (!response.ok) {
+            clearLastGame()
+            return
+        }
+        let data = await response.json()
+        if (data.status === 'complete') {
+            clearLastGame()
+            return
+        }
+    } catch (err) {
+        return
+    }
+
+    const resumeBtn = $('#btnResumeGame')
+    if (!resumeBtn) return
+
+    resumeBtn.classList.remove('hidden')
+    resumeBtn.addEventListener('click', function () {
+        resumeGame(lastGame.gameID)
+    })
 }
 
 // ****************************************************************
@@ -428,7 +516,11 @@ async function postData(url = '', data = {}) {
 
 // ****************************************************************
 // initialize the game board layout
-function initBoard() {
+// resumeState, when given (rejoining a game already in progress), is the
+// payload from GET /game/:gameID/state -- used to repaint already-placed
+// pieces and give each cup only its actual remaining piece count instead of
+// a fresh 45/27
+function initBoard(resumeState) {
     const splash = $('#splash-screen')
     splash.style.height = '0%'
     splash.classList.add('no-pointer-events')
@@ -444,7 +536,15 @@ function initBoard() {
     cssVars.setProperty('--fol-pedestal-size', FOL_WIDTH + 'px')
     cssVars.setProperty('--fol-pedestal-base-size', FOL_WIDTH + 15 + 'px')
 
-    loadGamePieces()
+    loadGamePieces(resumeState)
+
+    if (resumeState) {
+        ;[[1, resumeState.playerOne], [2, resumeState.playerTwo]].forEach(function ([playerNumber, player]) {
+            if (!player || !Array.isArray(player.slots)) return
+            player.slots.forEach(function (slotID) { fillSlot(slotID, playerNumber) })
+        })
+    }
+
     updatePlayerLocks()
 }
 
@@ -469,39 +569,55 @@ function updatePlayerLocks() {
 }
 
 // ****************************************************************
-// load initial game pieces
-function loadGamePieces() {
-    // fill up the bowls
-    // 45 ovals and 27 triangles for each player (or 1/4 in dev testing mode)
-    // 144 total spaces on the board
-    
+// load game pieces -- a brand new game gets a fresh 45 ovals/27 triangles
+// per player (or 1/4 in dev testing mode); resuming an in-progress game
+// gets each player's actual remaining counts instead, from resumeState
+// (GET /game/:gameID/state)
+function loadGamePieces(resumeState) {
     sndDroppingPieces.play()
 
-    const isDevTesting = $('#chk-dev-testing') && $('#chk-dev-testing').checked
-    const totalOvals = isDevTesting ? Math.ceil(45 / 4) : 45
-    const totalTriangles = isDevTesting ? Math.ceil(27 / 4) : 27
+    const isDevTesting = !resumeState && $('#chk-dev-testing') && $('#chk-dev-testing').checked
+    const defaultOvals = isDevTesting ? Math.ceil(45 / 4) : 45
+    const defaultTriangles = isDevTesting ? Math.ceil(27 / 4) : 27
+
+    // the server only decrements remainingOvals/remainingTriangles for the
+    // bot's own moves (see botSelectPiece in lib/game.js) -- for real
+    // players it never touches those fields, so they can't be trusted on
+    // resume. Each player's slots array IS kept accurate on every move
+    // (completeMove in app.js), so derive the true remaining count from that
+    // instead of the stale field.
+    function remainingCount(player, slotPrefix, total) {
+        if (!player) return total
+        const placed = Array.isArray(player.slots) ? player.slots.filter(function (s) { return s.indexOf(slotPrefix) === 0 }).length : 0
+        return Math.max(0, total - placed)
+    }
+
+    const p1Ovals = resumeState ? remainingCount(resumeState.playerOne, 'oval', 45) : defaultOvals
+    const p1Triangles = resumeState ? remainingCount(resumeState.playerOne, 'triangle', 27) : defaultTriangles
+    const p2Ovals = resumeState ? remainingCount(resumeState.playerTwo, 'oval', 45) : defaultOvals
+    const p2Triangles = resumeState ? remainingCount(resumeState.playerTwo, 'triangle', 27) : defaultTriangles
 
     // white ovals
-    for (let i = 1; i <= totalOvals; i++) {
+    for (let i = 1; i <= p1Ovals; i++) {
         let whiteOval = new GamePiece('whiteOval', '#p1-oval-cup', i)
         GAME.white_ovals.push(whiteOval)
     }
 
     // white triangles
-    for (let i = 1; i <= totalTriangles; i++) {
+    for (let i = 1; i <= p1Triangles; i++) {
         let whiteTriangle = new GamePiece('whiteTriangle', '#p1-triangle-cup', i)
         GAME.white_triangles.push(whiteTriangle)
     }
 
     // black ovals (numbered 45 down to match server bot piece IDs)
-    let startBlackOval = 45 - totalOvals + 1
+    let startBlackOval = 45 - p2Ovals + 1
     for (let i = startBlackOval; i <= 45; i++) {
         let blackOval = new GamePiece('blackOval', '#p2-oval-cup', i)
         GAME.black_ovals.push(blackOval)
     }
 
     // black triangles (numbered 27 down to match server bot piece IDs)
-    let startBlackTriangle = 27 - totalTriangles + 1
+    let startBlackTriangle = 27 - p2Triangles + 1
     for (let i = startBlackTriangle; i <= 27; i++) {
         let blackTriangle = new GamePiece('blackTriangle', '#p2-triangle-cup', i)
         GAME.black_triangles.push(blackTriangle)
@@ -662,21 +778,27 @@ function closeModal(element) {
 }
 
 // ****************************************************************
+// paint a single slot as taken by the given player -- shared by a live
+// move (updateBoard) and repainting a resumed game's already-placed pieces
+// (initBoard). Returns false if the slot was already painted (or doesn't
+// exist), so callers can tell a no-op from an actual fill.
+function fillSlot(slotID, playerNumber) {
+    const slotEl = document.getElementById(slotID)
+    if (!slotEl || slotEl.classList.contains('slot-taken')) return false
+
+    slotEl.style = playerNumber === 1
+        ? 'fill:url(#marbleWhiteFill);stroke:#000000;stroke-width:21.9435;stroke-miterlimit:2;stroke-opacity:0.840741'
+        : 'fill:url(#marbleBlackFill);stroke:#ffba8b;stroke-width:21.9435;stroke-miterlimit:2;stroke-opacity:0.840741'
+
+    slotEl.classList.add('slot-taken')
+    return true
+}
+
+// ****************************************************************
 // update game board by filling in slot
 function updateBoard(currentPlayer, slotID, availableSlots) {
-    // fill the slots
-    if (!document.getElementById(slotID).classList.contains('slot-taken')) {
-
-        if (currentPlayer === 1) {
-            document.getElementById(slotID).style = 'fill:url(#marbleWhiteFill);stroke:#000000;stroke-width:21.9435;stroke-miterlimit:2;stroke-opacity:0.840741';
-        }
-        else if (currentPlayer === 2) {
-            document.getElementById(slotID).style = 'fill:url(#marbleBlackFill);stroke:#ffba8b;stroke-width:21.9435;stroke-miterlimit:2;stroke-opacity:0.840741';
-        }
-
-        document.getElementById(slotID).classList.add('slot-taken')
-
-        sndPickPiece.play()  
+    if (fillSlot(slotID, currentPlayer)) {
+        sndPickPiece.play()
     }
 
     if (GAME.currentPlayer == GAME.myPlayerNumber) {
@@ -734,6 +856,8 @@ function checkGameOver(availableSlots) {
 // ****************************************************************
 // show game over screen
 function showGameOver() {
+    clearLastGame()
+
     const p1ScoreText = $('#player1-score') ? $('#player1-score').innerText : '0'
     const p2ScoreText = $('#player2-score') ? $('#player2-score').innerText : '0'
     const p1Score = parseInt(p1ScoreText || '0', 10)
@@ -780,6 +904,45 @@ function toggleSNDEffects() {
     sndDroppingPieces.mute(isMuted)
     sndPickPiece.mute(isMuted)
     sndSymbolFormed.mute(isMuted)
+}
+
+// ****************************************************************
+// the checkbox itself is a real user gesture, so it's safe to trigger the
+// permission prompt from here (unlike an automatic call on page load)
+async function toggleTurnNotifications() {
+    const checkbox = $('#chk-turn-notifications')
+
+    if (checkbox.checked) {
+        const enabled = await enableTurnNotifications(GAME.myPlayerName)
+        checkbox.checked = enabled
+        if (!enabled) showToast('Enable notifications in your browser settings to turn this on')
+    } else {
+        await disableTurnNotifications()
+    }
+}
+
+// ****************************************************************
+// reflect the real permission/subscription state whenever Options opens --
+// it can drift from the checkbox (e.g. permission revoked in browser settings)
+async function refreshTurnNotificationsToggle() {
+    const checkbox = $('#chk-turn-notifications')
+    if (!checkbox) return
+    checkbox.checked = await isTurnNotificationsEnabled()
+}
+
+// ****************************************************************
+// one-time prompt offered right when a friend game starts (see sse.js's
+// GAME_STARTED handler) -- skipped entirely if the browser can't do push,
+// or the player has already granted/denied permission
+async function maybeShowNotifyBanner() {
+    if (!pushSupported()) return
+    if (Notification.permission !== 'default') return
+
+    $('#notify-banner').classList.remove('hidden')
+}
+
+function hideNotifyBanner() {
+    $('#notify-banner').classList.add('hidden')
 }
 
 // ****************************************************************

@@ -93,6 +93,13 @@
 
     </div>
 
+    <!-- turn-notification opt-in, shown once when a friend game starts -->
+    <div id="notify-banner" class="hidden">
+        <span>Get notified when it's your turn?</span>
+        <button id="btnNotifyEnable" class="clicker" type="button">Enable</button>
+        <button id="btnNotifyDismiss" class="clicker" type="button" aria-label="Dismiss">&times;</button>
+    </div>
+
     <!-- ********** modal windows ********** -->
 
     <!-- splash screen -->
@@ -155,6 +162,7 @@
     <script src="resources/classes/GamePiece.js"></script>
     <script src="resources/js/howler.js"></script>
     <script src="resources/js/storage.js"></script>
+    <script src="resources/js/push.js"></script>
     <script src="resources/js/sse.js"></script>
     <script src="resources/js/main.js"></script>
 

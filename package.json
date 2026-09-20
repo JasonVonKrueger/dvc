@@ -6,13 +6,14 @@
   "scripts": {
     "start": "node app.js",
     "build": "",
-    "test": "node tests/unit/store-events.test.js && node tests/unit/game-state.test.js && node tests/integration/sse-endpoint.test.js && node tests/integration/game-flow-sse.test.js && node tests/integration/sse-reconnect.test.js"
+    "test": "node tests/unit/store-events.test.js && node tests/unit/game-state.test.js && node tests/unit/push-store.test.js && node tests/unit/push-send.test.js && node tests/integration/sse-endpoint.test.js && node tests/integration/game-flow-sse.test.js && node tests/integration/sse-reconnect.test.js"
   },
   "author": "MrMonster",
   "license": "ISC",
   "dependencies": {
-    "better-sqlite3": "^11.10.0",
+    "better-sqlite3": "^13.0.3",
     "express": "^4.18.1",
-    "unique-names-generator": "^4.7.1"
+    "unique-names-generator": "^4.7.1",
+    "web-push": "^3.6.7"
   }
 }
