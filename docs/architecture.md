@@ -54,6 +54,7 @@ graph TD
 - **`public/resources/js/main.js`**: Client entry point managing DOM event listeners, board animations, game setup, move submission, sound effects, and testing mode toggles.
 - **`public/resources/js/sse.js`**: Server-Sent Events client that listens for streamed events (`GAME_STARTED`, `MOVE_COMPLETE`, `SWITCH_PLAYER`, `STAGE_BOT`, `SCORE`) and updates local DOM state accordingly. `connectGameStream()` returns a promise that resolves once the subscription is live, so callers that need to trigger a broadcast of their own right after connecting (see Game Resumption below) don't race the handshake.
 - **`public/resources/js/storage.js`**: IndexedDB wrapper that persists the player's generated identity (`playerName`) and a pointer to their most recent game (`lastGame`: gameID + seat) across browser restarts — the basis for the "Resume game" flow.
+- **`public/resources/js/push.js`**: Service worker registration and Web Push subscribe/unsubscribe, driving the "Allow notifications" toggle in the Options modal (see Turn-Notification Opt-In below).
 - **`public/resources/classes/`**:
   - `Game.js`: Client-side state container.
   - `GamePiece.js`: Manages visual game piece instantiation, SVG placement, and click handlers in player cups.
@@ -120,6 +121,13 @@ No game type — solo, local pass-and-play, or remote friend — has to be finis
   - **Local pass-and-play**: one device speaks for whichever seat is currently up, so the resumed seat is set directly from `currentPlayer` rather than by matching a stored identity name.
   - **Solo (vs. bot)**: if resuming lands mid-bot-turn, the `SWITCH_PLAYER` event that would normally trigger `GO_BOT` already happened before this reconnect, so `restoreGameState()` fires `GO_BOT` itself once `connectGameStream()`'s returned promise confirms the SSE subscription is live (avoiding a race where the bot's `STAGE_BOT` broadcast fires before the client is listening).
   - **Remote friend**: also reachable via a push-notification deep link (`/index.html?resume=<gameID>`, see `notifyPlayerTurn` in `app.js`), independent of the IndexedDB pointer — this is the only type that sends a cross-device "it's your turn" push, since it's the only type where the other player isn't on the same device.
+
+### 6. Turn-Notification Opt-In
+Push notifications are opt-in only via the **Options** modal's "Allow notifications" toggle (`#chk-turn-notifications`, `public/resources/content-blocks/modal-options.html`) — there is no automatic prompt on game start, since browsers ignore/reject `Notification.requestPermission()` unless it's called from a genuine user gesture.
+- **`public/resources/js/push.js`**: service worker registration + Push API subscribe/unsubscribe, keyed to the device's persistent player identity (`storage.js`).
+- **Turning it on** (`toggleTurnNotifications()` in `main.js`) calls `enableTurnNotifications()`, which triggers the real OS/browser permission prompt, then subscribes via `PushManager` and registers the subscription with the server (`POST /push/subscribe`).
+- **Turning it off** calls `disableTurnNotifications()`, which unsubscribes and tells the server to drop the subscription (`POST /push/unsubscribe`). This stops notifications from being sent, but it does **not** revoke the browser's `Notification.permission` — no web API can do that; only the user can, via their browser's own site settings. Re-enabling the toggle later won't re-prompt if permission was already granted.
+- **`refreshTurnNotificationsToggle()`** re-syncs the checkbox to the real permission/subscription state every time the Options modal opens, since that state can drift out from under the checkbox (e.g. permission revoked externally in browser settings).
 
 ---
 

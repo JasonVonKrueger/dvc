@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Da Vinci's Challenge — A Strategy Game of Shape and Symmetry</title>
+    <meta name="description" content="Da Vinci's Challenge is a real-time strategy game of geometric patterns inspired by Leonardo da Vinci's Flower of Life. Play solo against the bot, pass-and-play on one device, or challenge a friend remotely — free, in your browser.">
+    <meta name="author" content="Mr Monster">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0b0c0d">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Da Vinci's Challenge">
+    <meta property="og:description" content="A strategy game of shape and symmetry, inspired by Leonardo da Vinci. Play solo, pass-and-play, or challenge a friend remotely.">
+    <meta property="og:image" content="resources/images/dvc-logo-600.png">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <link rel="icon" href="resources/images/favicon.ico">
+    <link rel="apple-touch-icon" href="resources/images/ios/touch-icon-iphone.png">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Yanone+Kaffeesatz:wght@400;600&display=swap');
+
+        @font-face {
+            font-family: 'dvc1-copperplate-gothic';
+            src: url('resources/fonts/Copperplate-Gothic-Medium.ttf') format('truetype');
+            font-display: swap;
+        }
+
+        :root {
+            --bg: #0b0c0d;
+            --bg-raise: #17181a;
+            --gold: #d6a56d;
+            --cream: #f5eee4;
+            --cream-muted: rgba(239, 231, 218, .78);
+            --cream-faint: rgba(239, 231, 218, .5);
+            --maroon-1: rgba(133, 27, 24, .94);
+            --maroon-2: rgba(83, 22, 22, .82);
+            --border-red: rgba(218, 105, 73, .9);
+            --font-display: 'dvc1-copperplate-gothic', 'Copperplate', serif;
+            --font-body: 'Yanone Kaffeesatz', sans-serif;
+        }
+
+        * , *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--cream);
+            font-family: var(--font-body);
+            font-size: 1.15rem;
+            line-height: 1.5;
+        }
+
+        img {
+            max-width: 100%;
+            display: block;
+        }
+
+        a {
+            color: inherit;
+        }
+
+        .wrap {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        h1, h2, h3 {
+            font-family: var(--font-display);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            margin: 0 0 .4em;
+            line-height: 1.15;
+        }
+
+        .kicker {
+            font-family: var(--font-body);
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: var(--cream-muted);
+            font-size: .85rem;
+            margin: 0 0 14px;
+        }
+
+        .lede {
+            color: var(--cream-muted);
+            font-size: 1.25rem;
+            max-width: 640px;
+        }
+
+        /* ---------------------------------------------------------- */
+        /* buttons -- same visual language as the app's own menu-action  */
+        /* buttons (public/resources/css/main.css), so "Play Now" reads  */
+        /* as the same control the player is about to land on            */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 54px;
+            padding: 0 26px;
+            border: 1px solid var(--border-red);
+            border-radius: 4px;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, .35);
+            background: linear-gradient(100deg, var(--maroon-1), var(--maroon-2));
+            color: var(--cream);
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .btn-quiet {
+            background: rgba(255, 255, 255, .04);
+            border-color: rgba(245, 238, 228, .28);
+            color: var(--cream-muted);
+        }
+
+        .btn-arrow {
+            font-family: sans-serif;
+            font-weight: 300;
+            font-size: 1.2rem;
+        }
+
+        .btn-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 34px;
+        }
+
+        /* ---------------------------------------------------------- */
+        /* header */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            background: rgba(11, 12, 13, .82);
+            backdrop-filter: blur(6px);
+            border-bottom: 1px solid rgba(245, 238, 228, .08);
+        }
+
+        header .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            font-family: var(--font-display);
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            font-size: 1rem;
+            color: var(--cream);
+        }
+
+        header .brand img {
+            height: 30px;
+            width: auto;
+        }
+
+        header nav {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+        }
+
+        header nav a:not(.btn) {
+            display: none;
+            font-size: .95rem;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: var(--cream-muted);
+            text-decoration: none;
+        }
+
+        @media (min-width: 640px) {
+            header nav a:not(.btn) {
+                display: inline;
+            }
+        }
+
+        header .btn {
+            min-height: 40px;
+            padding: 0 18px;
+            font-size: .85rem;
+        }
+
+        /* ---------------------------------------------------------- */
+        /* hero */
+        .hero {
+            position: relative;
+            isolation: isolate;
+            padding: 72px 0 90px;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: -1;
+            background:
+                radial-gradient(circle at 50% 20%, rgba(183, 45, 35, .28), transparent 45%),
+                linear-gradient(180deg, #0b0c0d 0%, #141516 55%, #0b0c0d 100%);
+        }
+
+        .hero .kicker {
+            justify-content: center;
+        }
+
+        .hero-logo {
+            width: min(520px, 90%);
+            margin: 0 auto 22px;
+            filter: drop-shadow(0 18px 34px rgba(0, 0, 0, .6));
+        }
+
+        .hero .lede {
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .hero .btn-row {
+            justify-content: center;
+        }
+
+        /* ---------------------------------------------------------- */
+        /* generic section rhythm */
+        section {
+            padding: 76px 0;
+        }
+
+        section + section {
+            border-top: 1px solid rgba(245, 238, 228, .07);
+        }
+
+        .section-head {
+            max-width: 640px;
+            margin: 0 0 44px;
+        }
+
+        .section-head.center {
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+        }
+
+        /* ---------------------------------------------------------- */
+        /* three ways to play */
+        .modes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 22px;
+        }
+
+        .mode-card {
+            padding: 28px 24px;
+            border: 1px solid rgba(245, 238, 228, .1);
+            border-radius: 8px;
+            background: linear-gradient(160deg, var(--bg-raise), rgba(11, 12, 13, .6));
+        }
+
+        .mode-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            margin-bottom: 18px;
+            overflow: hidden;
+            box-shadow: inset 0 0 0 2px rgba(214, 165, 109, .35);
+        }
+
+        .mode-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .mode-icon.local {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background:
+                radial-gradient(circle at 50% 42%, rgba(255, 178, 120, .18), transparent 55%),
+                linear-gradient(160deg, #6b4326, #2c1b10);
+        }
+
+        .mode-icon.local svg {
+            width: 60%;
+            height: 60%;
+        }
+
+        .mode-card h3 {
+            font-size: 1.15rem;
+            margin-bottom: 10px;
+        }
+
+        .mode-card p {
+            color: var(--cream-muted);
+            margin: 0;
+        }
+
+        /* ---------------------------------------------------------- */
+        /* resume / live-play callout */
+        .callout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        @media (min-width: 800px) {
+            .callout {
+                grid-template-columns: 1.1fr .9fr;
+            }
+            .callout.reverse {
+                grid-template-columns: .9fr 1.1fr;
+            }
+            .callout.reverse .callout-art {
+                order: -1;
+            }
+        }
+
+        .callout-art {
+            display: flex;
+            justify-content: center;
+        }
+
+        .phone-frame {
+            width: min(260px, 100%);
+            padding: 10px;
+            border-radius: 26px;
+            background: linear-gradient(160deg, #2a2a2a, #0a0a0a);
+            box-shadow: 0 24px 48px rgba(0, 0, 0, .5), inset 0 0 0 1px rgba(255, 255, 255, .06);
+        }
+
+        .phone-frame img {
+            border-radius: 18px;
+        }
+
+        .callout ul {
+            list-style: none;
+            margin: 24px 0 0;
+            padding: 0;
+            display: grid;
+            gap: 14px;
+        }
+
+        .callout li {
+            display: flex;
+            gap: 12px;
+            color: var(--cream-muted);
+        }
+
+        .callout li::before {
+            content: '✦';
+            color: var(--gold);
+            flex-shrink: 0;
+        }
+
+        /* ---------------------------------------------------------- */
+        /* scoring symbols */
+        .symbols {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 16px;
+        }
+
+        .symbol-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 20px 12px;
+            border: 1px solid rgba(245, 238, 228, .1);
+            border-radius: 8px;
+            background: var(--bg-raise);
+            text-align: center;
+        }
+
+        .symbol-card img {
+            width: 46px;
+            height: 46px;
+            filter: invert(78%) sepia(28%) saturate(482%) hue-rotate(348deg) brightness(93%) contrast(90%);
+        }
+
+        .symbol-card .name {
+            font-family: var(--font-display);
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            font-size: .82rem;
+            color: var(--cream);
+        }
+
+        .symbol-card .points {
+            color: var(--cream-faint);
+            font-size: .95rem;
+        }
+
+        /* ---------------------------------------------------------- */
+        /* how to play */
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 30px;
+            counter-reset: step;
+        }
+
+        .step {
+            position: relative;
+            padding-left: 46px;
+        }
+
+        .step::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid var(--border-red);
+            background: linear-gradient(100deg, var(--maroon-1), var(--maroon-2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-size: .95rem;
+        }
+
+        .step h3 {
+            font-size: 1.05rem;
+            margin-bottom: 6px;
+        }
+
+        .step p {
+            color: var(--cream-muted);
+            margin: 0;
+        }
+
+        .win-note {
+            margin-top: 40px;
+            padding: 18px 22px;
+            border-left: 3px solid var(--gold);
+            background: rgba(214, 165, 109, .06);
+            color: var(--cream-muted);
+        }
+
+        .win-note strong {
+            color: var(--gold);
+        }
+
+        /* ---------------------------------------------------------- */
+        /* final CTA */
+        .final-cta {
+            text-align: center;
+        }
+
+        .final-cta .btn-row {
+            justify-content: center;
+        }
+
+        /* ---------------------------------------------------------- */
+        footer {
+            padding: 40px 24px 60px;
+            text-align: center;
+            color: var(--cream-faint);
+            font-size: .85rem;
+        }
+
+        footer .foot-mark {
+            font-family: var(--font-display);
+            letter-spacing: .1em;
+            color: var(--cream-muted);
+            margin-bottom: 6px;
+        }
+
+        footer a {
+            text-decoration: underline;
+            text-decoration-color: rgba(245, 238, 228, .3);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a class="brand" href="#top">
+            <img src="resources/images/dvc-logo-600.png" alt="">
+        </a>
+        <nav>
+            <a href="#how-to-play">How to Play</a>
+            <a href="#scoring">Scoring</a>
+            <a class="btn" href="index.html">Play Now</a>
+        </nav>
+    </header>
+
+    <main id="top">
+
+        <!-- ****************************************************** -->
+        <section class="hero">
+            <div class="wrap">
+                <p class="kicker">A strategy game of shape and symmetry</p>
+                <img class="hero-logo" src="resources/images/dvc-logo-001.png" alt="Da Vinci's Challenge">
+                <p class="lede" style="margin-left:auto;margin-right:auto;">
+                    Place ovals and triangles across a Flower of Life board to complete secret geometric
+                    patterns, outscore your opponent, and block them from doing the same to you —
+                    free, in your browser, no install required.
+                </p>
+                <div class="btn-row">
+                    <a class="btn" href="index.html">Play Now <span class="btn-arrow">&#8594;</span></a>
+                    <a class="btn btn-quiet" href="#how-to-play">How to Play</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ****************************************************** -->
+        <section id="modes">
+            <div class="wrap">
+                <div class="section-head center">
+                    <p class="kicker">Three ways to play</p>
+                    <h2>Play your way</h2>
+                    <p class="lede" style="margin-left:auto;margin-right:auto;">Solo against the bot, side-by-side on one device, or against a friend anywhere.</p>
+                </div>
+
+                <div class="modes">
+                    <div class="mode-card">
+                        <div class="mode-icon"><img src="resources/images/icon_1_player.png" alt=""></div>
+                        <h3>Single Player</h3>
+                        <p>Go head-to-head with the built-in AI. It completes patterns the moment they're open and blocks your best moves — good practice before you take on a friend.</p>
+                    </div>
+
+                    <div class="mode-card">
+                        <div class="mode-icon local" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#f5eee4" stroke-width="1.6" stroke-linecap="round">
+                                <circle cx="8.5" cy="12" r="3.4"></circle>
+                                <circle cx="15.5" cy="12" r="3.4"></circle>
+                            </svg>
+                        </div>
+                        <h3>Pass &amp; Play</h3>
+                        <p>Two players, one device. Hand it off after each turn — no accounts, no setup, just pass the board.</p>
+                    </div>
+
+                    <div class="mode-card">
+                        <div class="mode-icon"><img src="resources/images/icon_2_player.png" alt=""></div>
+                        <h3>Play a Friend</h3>
+                        <p>Challenge someone remotely with a shareable game code. Moves sync instantly, and a turn notification pings whoever's up next.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ****************************************************** -->
+        <section id="resume">
+            <div class="wrap">
+                <div class="callout">
+                    <div class="callout-art">
+                        <div class="phone-frame">
+                            <img src="resources/images/landing-screenshot.png" alt="Da Vinci's Challenge menu on a phone">
+                        </div>
+                    </div>
+                    <div>
+                        <p class="kicker">No game has to end early</p>
+                        <h2>Pick up right where you left off</h2>
+                        <p class="lede">Every match — solo, pass-and-play, or remote — saves itself as you play. Close the tab, lock your phone, whatever: your board, pieces, and score are exactly as you left them.</p>
+                        <ul>
+                            <li>Moves sync in real time, so both sides always see the same board</li>
+                            <li>A "Resume game" button on the title screen jumps straight back in</li>
+                            <li>Remote friend matches send a real push notification when it's your turn</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ****************************************************** -->
+        <section id="scoring">
+            <div class="wrap">
+                <div class="section-head center">
+                    <p class="kicker">Nine secret symbols</p>
+                    <h2>Score by completing patterns</h2>
+                    <p class="lede" style="margin-left:auto;margin-right:auto;">Every piece you place is a step toward — or a block against — one of these. Higher-value symbols take more foresight (and more risk) to complete.</p>
+                </div>
+
+                <div class="symbols">
+                    <div class="symbol-card"><img src="resources/images/ss-1.png" alt=""><span class="name">Triangle</span><span class="points">1 pt</span></div>
+                    <div class="symbol-card"><img src="resources/images/ss-2.png" alt=""><span class="name">Diamond</span><span class="points">1 pt</span></div>
+                    <div class="symbol-card"><img src="resources/images/ss-3.png" alt=""><span class="name">Jewel</span><span class="points">5 pts</span></div>
+                    <div class="symbol-card"><img src="resources/images/ss-4.png" alt=""><span class="name">Eye</span><span class="points">10 pts</span></div>
+                    <div class="symbol-card"><img src="resources/images/ss-5.png" alt=""><span class="name">Pyramid</span><span class="points">10 pts</span></div>
+                    <div class="symbol-card"><img src="resources/images/ss-6.png" alt=""><span class="name">Hourglass</span><span class="points">25 pts</span></div>
+                    <div class="symbol-card"><img src="resources/images/ss-7.png" alt=""><span class="name">Star</span><span class="points">25 pts</span></div>
+                    <div class="symbol-card"><img src="resources/images/ss-8.png" alt=""><span class="name">Circle</span><span class="points">25 pts</span></div>
+                    <div class="symbol-card"><img src="resources/images/ss-9.png" alt=""><span class="name">Flower</span><span class="points">25 pts</span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ****************************************************** -->
+        <section id="how-to-play">
+            <div class="wrap">
+                <div class="section-head center">
+                    <p class="kicker">Rules in a minute</p>
+                    <h2>How to play</h2>
+                </div>
+
+                <div class="steps">
+                    <div class="step">
+                        <h3>Pick a piece</h3>
+                        <p>Choose an oval or a triangle from your cup. Change your mind? Tap it again to drop it back before placing.</p>
+                    </div>
+                    <div class="step">
+                        <h3>Place it</h3>
+                        <p>Tap an open slot on the Flower of Life that matches your piece. Player 1 starts on the white pieces, Player 2 on black.</p>
+                    </div>
+                    <div class="step">
+                        <h3>Score or block</h3>
+                        <p>Complete one of the nine secret symbols to score, or place strategically to keep your opponent from completing theirs.</p>
+                    </div>
+                </div>
+
+                <p class="win-note">
+                    The game ends when neither player can complete any more symbols. <strong>Highest score wins.</strong>
+                    Keep practicing against the computer and your friends, and eventually you'll become a Master of Da Vinci's Challenge.
+                </p>
+            </div>
+        </section>
+
+        <!-- ****************************************************** -->
+        <section class="final-cta">
+            <div class="wrap">
+                <p class="kicker">Free to play, right in your browser</p>
+                <h2>Ready to take the challenge?</h2>
+                <div class="btn-row">
+                    <a class="btn" href="index.html">Play Now <span class="btn-arrow">&#8594;</span></a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <p class="foot-mark">DVC · EST. 2024</p>
+        <p>Da Vinci's Challenge is a fan-made game inspired by Leonardo da Vinci's Flower of Life construction.
+            <br>
+            <a href="https://github.com/JasonVonKrueger/dvc" target="_blank" rel="noopener">View the project on GitHub</a>
+        </p>
+    </footer>
+
+</body>
+</html>

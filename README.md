@@ -30,6 +30,8 @@ No match — single player, local pass-and-play, or remote `Play a friend` — h
 
 Remote (`Play a friend`) games send a real push notification to whichever player is up next, so they don't have to keep the app open waiting for their opponent. This uses Web Push (VAPID), which needs a keypair the server signs messages with.
 
+Nothing is sent unless a player opts in via the **"Allow notifications"** toggle in the in-game Options menu — there's no automatic prompt on game start (browsers ignore/reject permission prompts that aren't triggered by an actual click). Turning the toggle off unsubscribes and stops future notifications, but it can't revoke the browser's own notification permission — that's a one-way grant only the player can undo from their browser's site settings.
+
 **Without any setup**, the app still runs fine locally — `lib/push.js` auto-generates a temporary keypair on boot and logs a warning. That's fine for poking around, but every restart invalidates it, so any existing subscriptions silently stop working. Set real keys (below) for anything you don't want to keep re-subscribing to.
 
 ### Generate a keypair

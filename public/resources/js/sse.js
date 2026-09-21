@@ -52,9 +52,6 @@ function connectGameStream(gameID) {
                     showToast('You are ' + (GAME.myPlayerName || 'player ' + GAME.myPlayerNumber))
                 }
                 savePlayerName(GAME.myPlayerName)
-                if (GAME.type === '(friend)') {
-                    maybeShowNotifyBanner()
-                }
                 break
             case 'MOVE_STARTED':
                 GAME.moveStarted = true

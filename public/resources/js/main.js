@@ -207,17 +207,6 @@ function initEventListeners() {
     })
 
     /* --------------------------------------------------------- */
-    // one-time opt-in prompt, shown when a friend game starts (see sse.js)
-    $('#btnNotifyEnable').addEventListener('click', async function (e) {
-        await enableTurnNotifications(GAME.myPlayerName)
-        hideNotifyBanner()
-    })
-
-    $('#btnNotifyDismiss').addEventListener('click', function (e) {
-        hideNotifyBanner()
-    })
-
-    /* --------------------------------------------------------- */
     $('#point-values-modal').addEventListener('click', function(e) {
         if (e.target === this) {
             closeModal('point-values-modal')
@@ -927,8 +916,15 @@ function toggleSNDEffects() {
 }
 
 // ****************************************************************
-// the checkbox itself is a real user gesture, so it's safe to trigger the
-// permission prompt from here (unlike an automatic call on page load)
+// "Allow notifications" toggle in the Options modal (public/resources/
+// content-blocks/modal-options.html) -- the checkbox itself is a real user
+// gesture, so it's safe to trigger the permission prompt from here (unlike
+// an automatic call on page load, which browsers ignore/reject anyway).
+// Turning it off can't revoke the browser's own Notification permission --
+// no web API can do that, only the user can via their browser's site
+// settings -- so this does the next best thing and unsubscribes the push
+// subscription server-side, which stops turn notifications from actually
+// being sent.
 async function toggleTurnNotifications() {
     const checkbox = $('#chk-turn-notifications')
 
@@ -948,21 +944,6 @@ async function refreshTurnNotificationsToggle() {
     const checkbox = $('#chk-turn-notifications')
     if (!checkbox) return
     checkbox.checked = await isTurnNotificationsEnabled()
-}
-
-// ****************************************************************
-// one-time prompt offered right when a friend game starts (see sse.js's
-// GAME_STARTED handler) -- skipped entirely if the browser can't do push,
-// or the player has already granted/denied permission
-async function maybeShowNotifyBanner() {
-    if (!pushSupported()) return
-    if (Notification.permission !== 'default') return
-
-    $('#notify-banner').classList.remove('hidden')
-}
-
-function hideNotifyBanner() {
-    $('#notify-banner').classList.add('hidden')
 }
 
 // ****************************************************************
