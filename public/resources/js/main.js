@@ -50,6 +50,9 @@ function folRotationTick(timestamp) {
     }
 
     requestAnimationFrame(folRotationTick)
+
+    // the splash menu's Install button only exists now that its fragment has loaded
+    initInstallButtons()
 }
 
 // ****************************************************************

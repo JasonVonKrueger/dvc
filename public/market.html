@@ -14,8 +14,9 @@
     <meta property="og:image" content="resources/images/dvc-logo-600.png">
     <meta name="twitter:card" content="summary_large_image">
 
+    <link rel="manifest" href="manifest.json">
     <link rel="icon" href="resources/images/favicon.ico">
-    <link rel="apple-touch-icon" href="resources/images/ios/touch-icon-iphone.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="resources/images/icons/apple-touch-icon-180.png">
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Yanone+Kaffeesatz:wght@400;600&display=swap');
@@ -118,6 +119,10 @@
             white-space: nowrap;
         }
 
+        button.btn {
+            cursor: pointer;
+        }
+
         .btn-quiet {
             background: rgba(255, 255, 255, .04);
             border-color: rgba(245, 238, 228, .28);
@@ -135,6 +140,23 @@
             flex-wrap: wrap;
             gap: 16px;
             margin-top: 34px;
+        }
+
+        /* pwa.js toggles these with the hidden attribute -- .btn's own
+           display: inline-flex would otherwise override the browser's [hidden] rule */
+        [data-install-button][hidden],
+        [data-install-hint][hidden] {
+            display: none !important;
+        }
+
+        .install-hint {
+            margin: 18px auto 0;
+            color: var(--cream-muted);
+        }
+
+        .install-hint strong {
+            color: var(--gold);
+            font-weight: normal;
         }
 
         /* ---------------------------------------------------------- */
@@ -520,7 +542,13 @@
                 <div class="btn-row">
                     <a class="btn" href="index.html">Play Now <span class="btn-arrow">&#8594;</span></a>
                     <a class="btn btn-quiet" href="#how-to-play">How to Play</a>
+                    <!-- revealed by pwa.js only when this browser can install the app -->
+                    <button class="btn btn-quiet" type="button" data-install-button hidden>Install App <span class="btn-arrow">&#8595;</span></button>
                 </div>
+                <!-- iOS: add from the game page itself so the home-screen icon opens the game, not this page -->
+                <p class="install-hint" data-install-hint hidden>
+                    Tap <strong>Play Now</strong>, then the <strong>Share</strong> button, then <strong>Add to Home Screen</strong>.
+                </p>
             </div>
         </section>
 
@@ -656,6 +684,12 @@
             <a href="https://github.com/JasonVonKrueger/dvc" target="_blank" rel="noopener">View the project on GitHub</a>
         </p>
     </footer>
+
+    <script src="resources/js/pwa.js"></script>
+    <script>
+        registerServiceWorker()
+        initInstallButtons()
+    </script>
 
 </body>
 </html>

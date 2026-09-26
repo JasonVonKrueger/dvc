@@ -1,23 +1,13 @@
 /**
- *  Turn-notification opt-in: service worker registration + Push API
- *  subscribe/unsubscribe, keyed to this device's persistent player identity
- *  (see storage.js). Every call is defensive -- push isn't supported on
+ *  Turn-notification opt-in: Push API subscribe/unsubscribe, keyed to this
+ *  device's persistent player identity (see storage.js). The service worker
+ *  itself is registered by pwa.js. Every call is defensive -- push isn't supported on
  *  every browser (notably iOS Safari outside of an installed PWA), and none
  *  of this should ever block or break actual gameplay.
  */
 
 function pushSupported() {
     return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
-}
-
-function registerServiceWorker() {
-    if (!pushSupported()) return Promise.resolve(null)
-
-    return navigator.serviceWorker.register('/service-worker.js')
-        .catch(function (err) {
-            console.warn('Service worker registration failed: ' + err.message)
-            return null
-        })
 }
 
 // PushManager wants the VAPID key as a Uint8Array, the server hands it back

@@ -231,6 +231,28 @@ button:hover {
     text-align: right;
 }
 
+/* pwa.js toggles these with the hidden attribute -- .menu-action's own
+   display: grid would otherwise override the browser's [hidden] rule */
+[data-install-button][hidden],
+[data-install-hint][hidden] {
+    display: none !important;
+}
+
+.install-hint {
+    width: 75%;
+    margin: -2px auto 0;
+    color: rgba(239, 231, 218, .78);
+    font-family: var(--font-modal);
+    font-size: 1.05rem;
+    letter-spacing: .04em;
+    text-align: center;
+}
+
+.install-hint strong {
+    color: #d6a56d;
+    font-weight: normal;
+}
+
 .splash-footer {
     display: flex;
     align-items: center;
