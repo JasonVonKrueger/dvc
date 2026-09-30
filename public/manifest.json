@@ -4,24 +4,66 @@
   "description": "A strategy game of shape and symmetry inspired by Leonardo da Vinci.",
   "id": "/index.html",
   "start_url": "/index.html",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0b0c0d",
   "theme_color": "#0b0c0d",
   "orientation": "any",
-  "categories": ["games", "strategy", "entertainment"],
+  "lang": "en",
+  "dir": "ltr",
+  "categories": [
+    "games",
+    "strategy",
+    "entertainment"
+  ],
   "icons": [
     {
-      "src": "resources/images/ios/touch-icon-iphone.png",
+      "src": "/resources/images/icons/icon-192.png",
       "type": "image/png",
-      "sizes": "200x200",
+      "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "resources/images/ios/touch-icon-ipad.png",
+      "src": "/resources/images/icons/icon-512.png",
       "type": "image/png",
-      "sizes": "152x152",
+      "sizes": "512x512",
       "purpose": "any"
+    },
+    {
+      "src": "/resources/images/icons/icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
-  "scope": "/"
+  "screenshots": [
+    {
+      "src": "/resources/images/screenshots/narrow-game.webp",
+      "sizes": "780x1688",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "Completing a Diamond on the Flower of Life board"
+    },
+    {
+      "src": "/resources/images/screenshots/narrow-menu.webp",
+      "sizes": "780x1688",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "Choose single player or challenge a friend"
+    },
+    {
+      "src": "/resources/images/screenshots/wide-game.webp",
+      "sizes": "1920x1200",
+      "type": "image/webp",
+      "form_factor": "wide",
+      "label": "Completing a Diamond on the Flower of Life board"
+    },
+    {
+      "src": "/resources/images/screenshots/wide-menu.webp",
+      "sizes": "1920x1200",
+      "type": "image/webp",
+      "form_factor": "wide",
+      "label": "Choose single player or challenge a friend"
+    }
+  ]
 }

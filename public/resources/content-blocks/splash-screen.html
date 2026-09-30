@@ -33,6 +33,15 @@
             <span class="menu-action-arrow" aria-hidden="true">&#8594;</span>
         </button>
 
+        <!-- revealed by pwa.js only when this browser can install the app -->
+        <button id="btnInstallApp" class="clicker menu-action menu-action-quiet" type="button" data-install-button hidden>
+            <span>Install app</span>
+            <span class="menu-action-arrow" aria-hidden="true">&#8595;</span>
+        </button>
+        <p class="install-hint" data-install-hint hidden>
+            Tap the <strong>Share</strong> button, then <strong>Add to Home Screen</strong>.
+        </p>
+
         <div class="hidden">
             <button id="iconExit" type="button">Close menu</button>
         </div>

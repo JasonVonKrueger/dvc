@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Da Vinci's Challenge — Offline</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0b0c0d">
+
+    <!-- Served by the service worker when a page load fails with no network.
+         Everything it needs is inline or precached alongside it (see
+         OFFLINE_ASSETS in service-worker.js) -- nothing else is reachable. -->
+    <style>
+        @font-face {
+            font-family: 'dvc1-copperplate-gothic';
+            src: url('/resources/fonts/Copperplate-Gothic-Medium.ttf') format('truetype');
+            font-display: swap;
+        }
+
+        * , *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            display: grid;
+            place-items: center;
+            padding: 24px 16px;
+            background:
+                radial-gradient(circle at 50% 30%, rgba(183, 45, 35, .22), transparent 50%),
+                #0b0c0d;
+            color: #f5eee4;
+            font-family: 'Yanone Kaffeesatz', sans-serif;
+            text-align: center;
+        }
+
+        main {
+            display: grid;
+            justify-items: center;
+            gap: 18px;
+            max-width: 420px;
+        }
+
+        img {
+            width: 132px;
+            height: 132px;
+            border-radius: 28px;
+            opacity: .85;
+        }
+
+        h1 {
+            margin: 6px 0 0;
+            font-family: 'dvc1-copperplate-gothic', 'Copperplate', serif;
+            font-size: 1.5rem;
+            font-weight: normal;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+        p {
+            margin: 0;
+            color: rgba(239, 231, 218, .78);
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        /* same look as the app's .menu-action buttons (main.css) */
+        button {
+            min-height: 54px;
+            margin-top: 10px;
+            padding: 0 30px;
+            border: 1px solid rgba(218, 105, 73, .9);
+            border-radius: 3px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, .24);
+            background: linear-gradient(100deg, rgba(133, 27, 24, .94), rgba(83, 22, 22, .82));
+            color: #f5eee4;
+            font-family: 'dvc1-copperplate-gothic', 'Copperplate', serif;
+            font-size: 1rem;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <img src="/resources/images/icons/icon-192.png" alt="">
+        <h1>You're offline</h1>
+        <p>Da Vinci's Challenge needs a connection to start or sync a game. Your saved games are safe — they'll be right where you left them once you're back online.</p>
+        <button id="btnRetry" type="button">Try again</button>
+    </main>
+
+    <script>
+        document.getElementById('btnRetry').addEventListener('click', function () {
+            location.reload()
+        })
+
+        // come back on our own the moment the connection does
+        window.addEventListener('online', function () {
+            location.reload()
+        })
+    </script>
+</body>
+</html>
