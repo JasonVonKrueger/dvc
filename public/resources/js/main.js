@@ -375,13 +375,6 @@ async function joinGame(playerNumber) {
         GAME.myPlayerName = data.playerName
     }
 
-    // local pass-and-play controls both players from one device -- remember
-    // both names so turn-change prompts can address whoever's up next
-    if (GAME.type === '(local)') {
-        if (playerNumber === 1) GAME.playerOneName = data.playerName
-        if (playerNumber === 2) GAME.playerTwoName = data.playerName
-    }
-
     if (data.gameStatus === 'ready') {
         postData('/do', { event: 'START_GAME', gameID: GAME.id })
     }
@@ -419,8 +412,6 @@ async function restoreGameState(gameID) {
         GAME.id = data.gameID
         GAME.type = data.type
         GAME.currentPlayer = data.currentPlayer
-        GAME.playerOneName = data.playerOne ? data.playerOne.name : null
-        GAME.playerTwoName = data.playerTwo ? data.playerTwo.name : null
 
         if (data.type === '(local)') {
             // pass-and-play: it's one device controlling whichever seat is
@@ -703,7 +694,7 @@ function score(currentPlayer, playerOneScore, playerTwoScore, symbol, points, sl
         pendingScoreHighlights.push(slots)
     }
 
-    queuePatternCallout(symbol, points)
+    queuePatternCallout(symbol, points, 'Player ' + currentPlayer)
 }
 
 // ****************************************************************
@@ -725,8 +716,8 @@ const PATTERN_CALLOUT_INFO = {
 let patternCalloutQueue = []
 let patternCalloutBusy = false
 
-function queuePatternCallout(symbol, points) {
-    patternCalloutQueue.push({ symbol: symbol, points: points })
+function queuePatternCallout(symbol, points, playerName) {
+    patternCalloutQueue.push({ symbol: symbol, points: points, playerName: playerName })
     processPatternCalloutQueue()
 }
 
@@ -747,10 +738,15 @@ function processPatternCalloutQueue() {
 
     const badge = document.createElement('div')
     badge.className = 'pattern-callout-badge'
+    const playerLabel = document.createElement('div')
+    playerLabel.className = 'pattern-callout-player'
+    playerLabel.textContent = next.playerName || ''
+
     badge.innerHTML =
         '<img class="pattern-callout-icon" src="resources/images/' + info.icon + '" alt="" />' +
         '<div class="pattern-callout-label">' + info.label + '</div>' +
         '<div class="pattern-callout-points">+' + next.points + '</div>'
+    badge.prepend(playerLabel)
 
     container.appendChild(badge)
     sndSymbolFormed.play()
