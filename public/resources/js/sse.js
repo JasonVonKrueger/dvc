@@ -47,9 +47,9 @@ function connectGameStream(gameID) {
             case 'GAME_STARTED':
                 initBoard()
                 if (GAME.type === '(local)') {
-                    showToast('Player 1 goes first!')
+                    showToast((GAME.playerOneName || 'Player 1') + ' goes first!')
                 } else {
-                    showToast('You are Player ' + GAME.myPlayerNumber)
+                    showToast('You are ' + (GAME.myPlayerName || 'player ' + GAME.myPlayerNumber))
                 }
                 savePlayerName(GAME.myPlayerName)
                 break
@@ -79,18 +79,15 @@ function connectGameStream(gameID) {
                 // local pass-and-play: this one device speaks for whoever's turn it is
                 if (GAME.type === '(local)') {
                     GAME.myPlayerNumber = message.currentPlayer
-                    showToast('Pass the device to Player ' + message.currentPlayer)
+                    const upNextName = message.currentPlayer === 1 ? GAME.playerOneName : GAME.playerTwoName
+                    showToast('Pass the device to ' + (upNextName || ('Player ' + message.currentPlayer)))
                 }
 
                 updatePlayerLocks()
 
-                // is player 2 a bot? (solo mode only) -- pause before its
-                // turn so the player's own move (and any scored-pattern
-                // callout) registers before the bot starts moving
+                // is player 2 a bot? (solo mode only)
                 if (message.currentPlayer == 2 && GAME.type === '(solo)') {
-                    setTimeout(function () {
-                        postData('/do', { event: 'GO_BOT', gameID: GAME.id })
-                    }, 2000)
+                    postData('/do', { event: 'GO_BOT', gameID: GAME.id })
                 }
                 break
             case 'STAGE_BOT':
@@ -114,7 +111,7 @@ function connectGameStream(gameID) {
                 }, 3000)
                 break
             case 'PLAYER_JOINED':
-                showToast('Player ' + (message.playerNumber || 2) + ' joined the game!')
+                showToast((message.playerName || 'Player 2') + ' joined the game!')
                 break
             case 'SCORE':
                 score(message.currentPlayer, message.playerOneScore, message.playerTwoScore, message.symbol, message.points, message.slots)
