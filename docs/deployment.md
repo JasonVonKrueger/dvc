@@ -45,7 +45,7 @@ sequenceDiagram
    ```
 3. **Start the webhook listener** under pm2, alongside the existing `dvc` process:
    ```bash
-   cd /home/hosted-apps/dev/dvc
+   cd /home/hosted-apps/dvc
    pm2 start scripts/deploy-webhook.js --name deploy-webhook
    pm2 save
    ```

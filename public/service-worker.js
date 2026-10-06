@@ -92,18 +92,22 @@ self.addEventListener('push', function (event) {
     event.waitUntil((async function () {
         let windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
 
-        // the page already got this update live over SSE if it's open and
-        // focused -- showing a native notification on top of that is just
-        // noise, so only surface one when nothing's actively being looked at
+        // always show a notification -- Safari revokes the push subscription
+        // after a few pushes that don't display one, so skipping it while the
+        // game is open would silently break notifications later. If the page
+        // is focused it already got this update over SSE, so show it quietly
+        // (no sound/vibration) instead. The per-game tag keeps it to one
+        // notification per game rather than a stack.
         let alreadyFocused = windows.some(function (client) { return client.focused })
-        if (alreadyFocused) return
 
         await self.registration.showNotification(data.title || "It's your turn!", {
             body: data.body || '',
             icon: '/resources/images/icons/icon-192.png',
             badge: '/resources/images/icons/badge-96.png',
             tag: data.gameID ? ('dvc-turn-' + data.gameID) : 'dvc-turn',
-            renotify: true,
+            // renotify + silent together is an error in Chrome
+            silent: alreadyFocused,
+            renotify: !alreadyFocused,
             data: { url: data.url || '/index.html' }
         })
     })())
